@@ -91,7 +91,7 @@ public class MappingBuilder {
 
 	private void parseClassMapping(Class<?> clazz, String pathPrefix) throws IntrospectionException,
 			JsonGenerationException, JsonMappingException, IOException {
-		
+
 		if (Modifier.isAbstract(clazz.getModifiers())) {
 			LOGGER.info("Class <" + clazz.getName() + "> is abstract and won't be processed.");
 			return;
@@ -139,7 +139,11 @@ public class MappingBuilder {
 
 	private void parseFieldMappings(Class<?> clazz, Map<String, Object> classDefinitionMap, String pathPrefix)
 			throws IntrospectionException {
-		Field[] fields = clazz.getFields();
+		if (clazz.getSuperclass() != null && clazz.getSuperclass() != Object.class) {
+			parseFieldMappings(clazz.getSuperclass(), classDefinitionMap, pathPrefix);
+		}
+
+		Field[] fields = clazz.getDeclaredFields();
 		Map<String, PropertyDescriptor> pdMap = getFieldPropertyDescriptorMap(clazz);
 
 		Map<String, Object> propertiesDefinitionMap = new HashMap<String, Object>();
@@ -174,17 +178,26 @@ public class MappingBuilder {
 		processBoostAnnotation(classDefinitionMap, pathPrefix, field, propertyDescriptor);
 
 		// process the fields
-		if (ClassUtils.isPrimitiveOrWrapper(field.getType())) {
-			processPrimitive(clazz, propertiesDefinitionMap, pathPrefix, field, propertyDescriptor);
+		if (ClassUtils.isPrimitiveOrWrapper(field.getType()) || field.getType() == String.class) {
+			processStringOrPrimitive(clazz, propertiesDefinitionMap, pathPrefix, field, propertyDescriptor);
 		} else {
 			// mapping of a complex field
 			if (field.getType().isArray()) {
 				// process the array type.
 				Class<?> arrayType = field.getType().getComponentType();
-				if (ClassUtils.isPrimitiveOrWrapper(arrayType)) {
-					processPrimitive(clazz, propertiesDefinitionMap, pathPrefix, field, propertyDescriptor);
+				if (ClassUtils.isPrimitiveOrWrapper(arrayType) || arrayType == String.class) {
+					processStringOrPrimitive(clazz, propertiesDefinitionMap, pathPrefix, field, propertyDescriptor);
 				} else {
-					processComplexType(clazz, propertiesDefinitionMap, pathPrefix, field, propertyDescriptor);
+					if (arrayType.isEnum()) {
+						// if this is an enum and there is a String
+						StringField annotation = getAnnotation(field, propertyDescriptor, StringField.class);
+						if (annotation != null) {
+							processStringOrPrimitive(clazz, propertiesDefinitionMap, pathPrefix, field,
+									propertyDescriptor);
+						}
+					} else {
+						processComplexType(clazz, propertiesDefinitionMap, pathPrefix, field, propertyDescriptor);
+					}
 				}
 			} else {
 				// process the type
@@ -203,11 +216,10 @@ public class MappingBuilder {
 						+ field.getDeclaringClass().getName() + "> but a routing has already be defined for <"
 						+ ((Map<String, Object>) classDefinitionMap.get("_id")).get("path") + ">");
 			} else {
-				Map<String, Object> idDef = new HashMap<String, Object>();
-				idDef.put("path", pathPrefix + field.getName());
-				idDef.put("index", id.index());
-				idDef.put("store", id.store());
-				classDefinitionMap.put("_id", idDef);
+				classDefinitionMap.put(
+						"_id",
+						getMap(new String[] { "path", "index", "store" }, new Object[] { pathPrefix + field.getName(),
+								id.index(), id.store() }));
 			}
 		}
 	}
@@ -248,8 +260,8 @@ public class MappingBuilder {
 		}
 	}
 
-	private void processPrimitive(Class<?> clazz, Map<String, Object> propertiesDefinitionMap, String pathPrefix,
-			Field field, PropertyDescriptor propertyDescriptor) {
+	private void processStringOrPrimitive(Class<?> clazz, Map<String, Object> propertiesDefinitionMap,
+			String pathPrefix, Field field, PropertyDescriptor propertyDescriptor) {
 		processFieldAnnotation(IndexName.class, new IndexNameAnnotationParser(), propertiesDefinitionMap, pathPrefix,
 				field, propertyDescriptor);
 		processFieldAnnotation(NullValue.class, new NullValueAnnotationParser(), propertiesDefinitionMap, pathPrefix,

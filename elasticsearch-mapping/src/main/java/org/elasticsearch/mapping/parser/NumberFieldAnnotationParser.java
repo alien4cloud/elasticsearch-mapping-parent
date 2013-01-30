@@ -42,17 +42,22 @@ public class NumberFieldAnnotationParser implements IPropertyAnnotationParser<Nu
 	}
 
 	private String getESNumberType(Field field) {
-		if (Float.TYPE.equals(field.getType()) || Float.class.equals(field.getType())) {
+		Class<?> fieldType = field.getType();
+		while (fieldType.isArray()) {
+			fieldType = fieldType.getComponentType();
+		}
+
+		if (Float.TYPE.equals(fieldType) || Float.class.equals(fieldType)) {
 			return "float";
-		} else if (Double.TYPE.equals(field.getType()) || Double.class.equals(field.getType())) {
+		} else if (Double.TYPE.equals(fieldType) || Double.class.equals(fieldType)) {
 			return "double";
-		} else if (Integer.TYPE.equals(field.getType()) || Integer.class.equals(field.getType())) {
+		} else if (Integer.TYPE.equals(fieldType) || Integer.class.equals(fieldType)) {
 			return "integer";
-		} else if (Long.TYPE.equals(field.getType()) || Long.class.equals(field.getType())) {
+		} else if (Long.TYPE.equals(fieldType) || Long.class.equals(fieldType)) {
 			return "long";
-		} else if (Short.TYPE.equals(field.getType()) || Short.class.equals(field.getType())) {
+		} else if (Short.TYPE.equals(fieldType) || Short.class.equals(fieldType)) {
 			return "short";
-		} else if (Byte.TYPE.equals(field.getType()) || Byte.class.equals(field.getType())) {
+		} else if (Byte.TYPE.equals(fieldType) || Byte.class.equals(fieldType)) {
 			return "byte";
 		}
 		return null;
