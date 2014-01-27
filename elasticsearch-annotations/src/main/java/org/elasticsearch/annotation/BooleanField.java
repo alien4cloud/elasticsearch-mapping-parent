@@ -5,6 +5,7 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
+import org.elasticsearch.mapping.IndexType;
 import org.elasticsearch.mapping.YesNo;
 
 /**
@@ -26,9 +27,9 @@ public @interface BooleanField {
 	 * Set to no if the value should not be indexed. In this case, store should be set to yes, since if it’s not indexed
 	 * and not stored, there is nothing to do with it.
 	 * 
-	 * @return Yes or no (default is yes).
+	 * @return No or not_analyzed (default is not_analyzed).
 	 */
-	YesNo index() default YesNo.yes;
+	IndexType index() default IndexType.not_analyzed;
 
 	/**
 	 * The boost value. Defaults to 1.0.

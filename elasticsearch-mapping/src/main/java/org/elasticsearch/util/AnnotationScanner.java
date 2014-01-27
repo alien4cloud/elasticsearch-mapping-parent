@@ -54,4 +54,22 @@ public final class AnnotationScanner {
 
 		return classSet;
 	}
+
+	/**
+	 * Get an annotation on the class or one of the super classes.
+	 * 
+	 * @param annotationClass The annotation to get.
+	 * @param clazz The class on which to search for the annotation.
+	 * @return The annotation for this class or null if not found neither on the class or one of it's super class.
+	 */
+	public static <T extends Annotation> T getAnnotation(Class<T> annotationClass, Class<?> clazz) {
+		if (clazz == Object.class) {
+			return null;
+		}
+		T annotationInstance = clazz.getAnnotation(annotationClass);
+		if (annotationInstance == null) {
+			return getAnnotation(annotationClass, clazz.getSuperclass());
+		}
+		return annotationInstance;
+	}
 }

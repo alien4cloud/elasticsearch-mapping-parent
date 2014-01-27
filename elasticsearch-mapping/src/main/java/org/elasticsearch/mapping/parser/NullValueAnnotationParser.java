@@ -6,6 +6,7 @@ import java.util.Map;
 
 import org.elasticsearch.annotation.NullValue;
 
+
 /**
  * Parse a {@link NullValue} annotation.
  * 

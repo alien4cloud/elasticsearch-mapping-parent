@@ -6,6 +6,7 @@ import java.util.Map;
 
 import org.elasticsearch.annotation.Analyser;
 
+
 /**
  * Parse an {@link Analyser} annotation.
  * 

@@ -7,6 +7,7 @@ import java.util.Map;
 import org.elasticsearch.annotation.NumberField;
 import org.elasticsearch.mapping.MappingException;
 
+
 /**
  * Parse a {@link NumberField} annotation.
  * 

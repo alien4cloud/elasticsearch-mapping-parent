@@ -7,6 +7,7 @@ import java.util.Map;
 import org.elasticsearch.annotation.DateField;
 import org.elasticsearch.mapping.MappingException;
 
+
 /**
  * Parse a {@link DateField} annotation.
  * 
