@@ -1,11 +1,9 @@
 package org.elasticsearch.mapping.parser;
 
-import java.beans.PropertyDescriptor;
-import java.lang.reflect.Field;
 import java.util.Map;
 
 import org.elasticsearch.annotation.Analyser;
-
+import org.elasticsearch.mapping.Indexable;
 
 /**
  * Parse an {@link Analyser} annotation.
@@ -13,8 +11,7 @@ import org.elasticsearch.annotation.Analyser;
  * @author luc boutier
  */
 public class AnalyserAnnotationParser implements IPropertyAnnotationParser<Analyser> {
-	public void parseAnnotation(Analyser annotation, Map<String, Object> fieldDefinition, String pathPrefix,
-			Field field, PropertyDescriptor propertyDescriptor) {
-		fieldDefinition.put("analyser", annotation.analyzer());
-	}
+    public void parseAnnotation(Analyser annotation, Map<String, Object> fieldDefinition, String pathPrefix, Indexable indexable) {
+        fieldDefinition.put("analyser", annotation.analyzer());
+    }
 }

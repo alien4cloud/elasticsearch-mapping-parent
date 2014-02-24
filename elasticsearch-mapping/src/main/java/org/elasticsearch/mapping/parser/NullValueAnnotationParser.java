@@ -1,11 +1,9 @@
 package org.elasticsearch.mapping.parser;
 
-import java.beans.PropertyDescriptor;
-import java.lang.reflect.Field;
 import java.util.Map;
 
 import org.elasticsearch.annotation.NullValue;
-
+import org.elasticsearch.mapping.Indexable;
 
 /**
  * Parse a {@link NullValue} annotation.
@@ -13,8 +11,8 @@ import org.elasticsearch.annotation.NullValue;
  * @author luc boutier
  */
 public class NullValueAnnotationParser implements IPropertyAnnotationParser<NullValue> {
-	public void parseAnnotation(NullValue annotation, Map<String, Object> fieldDefinition, String pathPrefix,
-			Field field, PropertyDescriptor propertyDescriptor) {
-		fieldDefinition.put("null_value", annotation.nullValue());
-	}
+    public void parseAnnotation(NullValue annotation, Map<String, Object> fieldDefinition, String pathPrefix,
+            Indexable indexable) {
+        fieldDefinition.put("null_value", annotation.nullValue());
+    }
 }
