@@ -253,7 +253,7 @@ public class MappingBuilder {
         if (id != null) {
             if (classDefinitionMap.containsKey("_id")) {
                 LOGGER.warn("An Id annotation is defined on field <" + esFieldName + "> of <"
-                        + indexable.getDeclaringClassName() + "> but a routing has already be defined for <"
+                        + indexable.getDeclaringClassName() + "> but an id has already be defined for <"
                         + ((Map<String, Object>) classDefinitionMap.get("_id")).get("path") + ">");
             } else {
                 classDefinitionMap.put(
@@ -286,8 +286,8 @@ public class MappingBuilder {
         Boost boost = indexable.getAnnotation(Boost.class);
         if (boost != null) {
             if (classDefinitionMap.containsKey("_boost")) {
-                LOGGER.warn("A Routing annotation is defined on field <" + esFieldName + "> of <"
-                        + indexable.getDeclaringClassName() + "> but a routing has already be defined for <"
+                LOGGER.warn("A Boost annotation is defined on field <" + esFieldName + "> of <"
+                        + indexable.getDeclaringClassName() + "> but a boost has already be defined for <"
                         + ((Map<String, Object>) classDefinitionMap.get("_boost")).get("name") + ">");
             } else {
                 Map<String, Object> boostDef = new HashMap<String, Object>();
@@ -345,7 +345,6 @@ public class MappingBuilder {
 
     private void processComplexType(Class<?> clazz, Map<String, Object> propertiesDefinitionMap, String pathPrefix, Indexable indexable) {
         // TODO check annotations
-
     }
 
     @SuppressWarnings("unchecked")
@@ -372,28 +371,50 @@ public class MappingBuilder {
      */
     private List<Indexable> getIndexables(Class<?> clazz) throws IntrospectionException {
         List<Indexable> indexables = new ArrayList<Indexable>();
-        Map<String, PropertyDescriptor> pdMaps = new HashMap<String, PropertyDescriptor>();
-        Map<String, Field> fdMaps = new HashMap<String, Field>();
-        PropertyDescriptor[] pdArr = Introspector.getBeanInfo(clazz).getPropertyDescriptors();
-        for (PropertyDescriptor desc : pdArr) {
-            // Check valid getter setter
-            if (desc.getReadMethod() != null && desc.getWriteMethod() != null) {
-                pdMaps.put(desc.getName(), desc);
-            }
-        }
+        Map<String, PropertyDescriptor> pdMap = getValidPropertyDescriptorMap(clazz);
+        Map<String, Field> fdMap = new HashMap<String, Field>();
+
         Field[] fdArr = clazz.getDeclaredFields();
         for (Field field : fdArr) {
             // Check not transient field
-            if (!Modifier.isTransient(field.getModifiers())) {
-                fdMaps.put(field.getName(), field);
+            if (Modifier.isTransient(field.getModifiers())) {
+                continue;
             }
+
+            PropertyDescriptor propertyDescriptor = pdMap.get(field.getName());
+            if (propertyDescriptor == null || propertyDescriptor.getReadMethod() == null
+                    || propertyDescriptor.getWriteMethod() == null) {
+                LOGGER.debug("Field <" + field.getName() + "> of class <" + clazz.getName()
+                        + "> has no proper setter/getter and won't be persisted.");
+                continue;
+            }
+
+            fdMap.put(field.getName(), field);
         }
         Set<String> allIndexablesName = new HashSet<String>();
-        allIndexablesName.addAll(pdMaps.keySet());
-        allIndexablesName.addAll(fdMaps.keySet());
+        allIndexablesName.addAll(pdMap.keySet());
+        allIndexablesName.addAll(fdMap.keySet());
         for (String name : allIndexablesName) {
-            indexables.add(new Indexable(fdMaps.get(name), pdMaps.get(name)));
+            indexables.add(new Indexable(fdMap.get(name), pdMap.get(name)));
         }
         return indexables;
+    }
+
+    private Map<String, PropertyDescriptor> getValidPropertyDescriptorMap(Class<?> clazz) throws IntrospectionException {
+        Map<String, PropertyDescriptor> pdMap = new HashMap<String, PropertyDescriptor>();
+        PropertyDescriptor[] pdArr = Introspector.getBeanInfo(clazz, clazz.getSuperclass()).getPropertyDescriptors();
+
+        if (pdArr == null) {
+            return pdMap;
+        }
+
+        for (PropertyDescriptor pd : pdArr) {
+            // Check valid getter setter
+            if (pd.getReadMethod() != null && pd.getWriteMethod() != null) {
+                pdMap.put(pd.getName(), pd);
+            }
+        }
+
+        return pdMap;
     }
 }
