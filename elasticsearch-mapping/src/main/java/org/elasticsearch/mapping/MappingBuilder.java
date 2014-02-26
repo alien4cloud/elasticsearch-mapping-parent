@@ -67,6 +67,17 @@ public class MappingBuilder {
     private Map<String, List<IFacetBuilderHelper>> facetByClassName = new HashMap<String, List<IFacetBuilderHelper>>();
 
     /**
+     * Helper to return a valid index type from a class. Currently uses clazz.getSimpleName().toLowerCase();
+     * Using the helper make sure this is done in a consistent way in different locations of the code.
+     * 
+     * @param clazz The class for which to get an index type.
+     * @return The index type.
+     */
+    public static String indexTypeFromClass(Class<?> clazz) {
+        return clazz.getSimpleName().toLowerCase();
+    }
+
+    /**
      * Build mapping for the given packages.
      * 
      * @param packages list of packages in which to look for {@link ESObject} annotated classes.
@@ -148,7 +159,7 @@ public class MappingBuilder {
         TypeName typeName = clazz.getAnnotation(TypeName.class);
         String typeNameStr;
         if (typeName == null) {
-            typeNameStr = clazz.getSimpleName().toLowerCase();
+            typeNameStr = MappingBuilder.indexTypeFromClass(clazz);
         } else {
             typeNameStr = typeName.typeName();
         }

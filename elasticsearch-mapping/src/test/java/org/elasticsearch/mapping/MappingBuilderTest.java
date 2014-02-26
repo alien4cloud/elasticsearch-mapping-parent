@@ -18,16 +18,14 @@ import com.fasterxml.jackson.databind.JsonMappingException;
  */
 public class MappingBuilderTest {
 
-	@Test
-	public void testSimpleClassMapping() throws IntrospectionException, JsonGenerationException, JsonMappingException,
-			IOException {
-		MappingBuilder mappingBuilder = new MappingBuilder();
-		mappingBuilder.initialize("org.elasticsearch.mapping.model");
-		String personMapping = mappingBuilder.getMapping(Person.class);
-		Assert.assertEquals(
-				"{\"person\":{\"_type\":{\"index\":\"not_analyzed\",\"store\":\"no\"},\"_source\":{\"enabled\":true},\"properties\":{},\"_all\":{\"enabled\":true}}}",
-				personMapping);
-	}
-	
-	
+    @Test
+    public void testSimpleClassMapping() throws IntrospectionException, JsonGenerationException, JsonMappingException,
+            IOException {
+        MappingBuilder mappingBuilder = new MappingBuilder();
+        mappingBuilder.initialize("org.elasticsearch.mapping.model");
+        String personMapping = mappingBuilder.getMapping(Person.class);
+        Assert.assertEquals(
+                "{\"person\":{\"_type\":{\"index\":\"not_analyzed\",\"store\":false},\"_id\":{\"index\":\"no\",\"store\":false,\"path\":\"id\"},\"_source\":{\"enabled\":true},\"properties\":{\"lastname\":{\"include_in_all\":true,\"index\":\"analyzed\",\"store\":false,\"boost\":1.0,\"term_vector\":\"no\",\"type\":\"string\"},\"firstname\":{\"include_in_all\":false,\"index\":\"no\",\"store\":false,\"boost\":1.0,\"term_vector\":\"no\",\"type\":\"string\"}},\"_all\":{\"enabled\":true}}}",
+                personMapping);
+    }
 }

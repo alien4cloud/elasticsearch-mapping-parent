@@ -3,14 +3,15 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>fr.lucboutier.elasticsearch</groupId>
 	<artifactId>elasticsearch-mapping-parent</artifactId>
-	<version>1.0.1-SNAPSHOT</version>
+	<version>1.0.2</version>
 	<packaging>pom</packaging>
 
 	<name>Elastic search mapping parent</name>
 	<description>An object mapping framework for Elastic Search.</description>
 
 	<properties>
-		<elasticsearch.version>0.90.10</elasticsearch.version>
+<!-- 	<elasticsearch.version>0.90.10</elasticsearch.version> -->
+		<elasticsearch.version>1.0.0</elasticsearch.version>
 		<jackson.version>2.0.4</jackson.version>
 		<spring.version>3.1.0.RELEASE</spring.version>
 		<junit.version>4.10</junit.version>

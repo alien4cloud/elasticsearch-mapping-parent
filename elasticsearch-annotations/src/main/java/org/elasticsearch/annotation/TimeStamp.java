@@ -6,7 +6,6 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 import org.elasticsearch.mapping.IndexType;
-import org.elasticsearch.mapping.YesNo;
 
 /**
  * Id field for elastic search.
@@ -18,7 +17,7 @@ import org.elasticsearch.mapping.YesNo;
 public @interface TimeStamp {
 	IndexType index() default IndexType.not_analyzed;
 
-	YesNo store() default YesNo.no;
+	boolean store() default false;
 
 	String format();
 }
