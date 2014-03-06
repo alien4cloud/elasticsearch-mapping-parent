@@ -32,7 +32,7 @@ public class ElasticSearchClient {
         this.node = NodeBuilder.nodeBuilder().client(this.isClient).clusterName(this.clusterName).local(this.isLocal)
                 .node();
         if (this.resetData) { // removes all indices from elastic search. For Integration testing only.
-//            this.node.client().admin().indices().prepareDelete().execute().actionGet();
+            // this.node.client().admin().indices().prepareDelete().execute().actionGet();
         }
         LOGGER.info("Initialized ElasticSearch client for cluster <" + this.clusterName + ">");
     }

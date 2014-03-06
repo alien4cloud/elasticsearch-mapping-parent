@@ -29,7 +29,10 @@ import org.elasticsearch.annotation.Routing;
 import org.elasticsearch.annotation.SearchAnalyser;
 import org.elasticsearch.annotation.StringField;
 import org.elasticsearch.annotation.TypeName;
+import org.elasticsearch.annotation.query.FetchContext;
 import org.elasticsearch.annotation.query.RangeFacet;
+import org.elasticsearch.annotation.query.RangeFilter;
+import org.elasticsearch.annotation.query.TermFilter;
 import org.elasticsearch.annotation.query.TermsFacet;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
@@ -64,7 +67,10 @@ public class MappingBuilder {
     private static final ESLogger LOGGER = Loggers.getLogger(MappingBuilder.class);
     private Map<String, String> classesMappings = new HashMap<String, String>();
     private Map<String, String> typeByClassName = new HashMap<String, String>();
+
+    private Map<String, List<IFilterBuilderHelper>> filtersByClassName = new HashMap<String, List<IFilterBuilderHelper>>();
     private Map<String, List<IFacetBuilderHelper>> facetByClassName = new HashMap<String, List<IFacetBuilderHelper>>();
+    private Map<String, Map<String, SourceFetchContext>> fetchSourceContextByClass = new HashMap<String, Map<String, SourceFetchContext>>();
 
     /**
      * Helper to return a valid index type from a class. Currently uses clazz.getSimpleName().toLowerCase();
@@ -126,6 +132,26 @@ public class MappingBuilder {
     }
 
     /**
+     * Get the list of es fields that should be filtered in a filter search for the given class.
+     * 
+     * @param clazz The class for which to get the facets.
+     * @return The list of filters builders for this class.
+     */
+    public List<IFilterBuilderHelper> getFilters(Class<?> clazz) {
+        return this.filtersByClassName.get(clazz.getName());
+    }
+
+    /**
+     * Get the list of es fields that should be filtered in a filter search for the given class.
+     * 
+     * @param className The name for which to get the facets.
+     * @return The list of filters builders for this class.
+     */
+    public List<IFilterBuilderHelper> getFilters(String className) {
+        return this.filtersByClassName.get(className);
+    }
+
+    /**
      * Get the list of es fields that should be faceted in a facet search for the given class.
      * 
      * @param clazz The class for which to get the facets.
@@ -143,6 +169,21 @@ public class MappingBuilder {
      */
     public List<IFacetBuilderHelper> getFacets(String className) {
         return this.facetByClassName.get(className);
+    }
+
+    /**
+     * Get the {@link SourceFetchContext} for a given fetch context.
+     * 
+     * @param className The class for which to get the fetch context.
+     * @param fetchContext The fetch context for which to get the field list.
+     * @return The requested {@link SourceFetchContext} or null if no context match the given class and fetch context key.
+     */
+    public SourceFetchContext getFetchSource(String className, String fetchContext) {
+        Map<String, SourceFetchContext> fetchSourceByContext = this.fetchSourceContextByClass.get(className);
+        if (fetchSourceByContext == null) {
+            return null;
+        }
+        return fetchSourceByContext.get(fetchContext);
     }
 
     private void initialize(String packageName) throws IntrospectionException, JsonGenerationException,
@@ -166,7 +207,9 @@ public class MappingBuilder {
 
         Map<String, Object> typeDefinitionMap = new HashMap<String, Object>();
         Map<String, Object> classDefinitionMap = new HashMap<String, Object>();
+        List<IFilterBuilderHelper> filteredFields = new ArrayList<IFilterBuilderHelper>();
         List<IFacetBuilderHelper> facetFields = new ArrayList<IFacetBuilderHelper>();
+        Map<String, SourceFetchContext> fetchContexts = new HashMap<String, SourceFetchContext>();
 
         typeDefinitionMap.put(typeNameStr, classDefinitionMap);
 
@@ -175,13 +218,15 @@ public class MappingBuilder {
         classDefinitionMap.put("_type",
                 getMap(new String[] { "store", "index" }, new Object[] { esObject.store(), esObject.index() }));
 
-        parseFieldMappings(clazz, classDefinitionMap, facetFields, pathPrefix);
+        parseFieldMappings(clazz, classDefinitionMap, facetFields, filteredFields, fetchContexts, pathPrefix);
 
         ObjectMapper mapper = new ObjectMapper();
         String jsonMapping = mapper.writeValueAsString(typeDefinitionMap);
         this.classesMappings.put(clazz.getName(), jsonMapping);
         this.typeByClassName.put(clazz.getName(), typeNameStr);
         this.facetByClassName.put(clazz.getName(), facetFields);
+        this.filtersByClassName.put(clazz.getName(), filteredFields);
+        this.fetchSourceContextByClass.put(clazz.getName(), fetchContexts);
     }
 
     private Map<String, Object> getMap(String key, Object value) {
@@ -200,9 +245,10 @@ public class MappingBuilder {
 
     @SuppressWarnings("unchecked")
     private void parseFieldMappings(Class<?> clazz, Map<String, Object> classDefinitionMap,
-            List<IFacetBuilderHelper> facetFields, String pathPrefix) throws IntrospectionException {
+            List<IFacetBuilderHelper> facetFields, List<IFilterBuilderHelper> filteredFields,
+            Map<String, SourceFetchContext> fetchContexts, String pathPrefix) throws IntrospectionException {
         if (clazz.getSuperclass() != null && clazz.getSuperclass() != Object.class) {
-            parseFieldMappings(clazz.getSuperclass(), classDefinitionMap, facetFields, pathPrefix);
+            parseFieldMappings(clazz.getSuperclass(), classDefinitionMap, facetFields, filteredFields, fetchContexts, pathPrefix);
         }
 
         List<Indexable> indexables = getIndexables(clazz);
@@ -214,12 +260,14 @@ public class MappingBuilder {
         }
 
         for (Indexable indexable : indexables) {
-            parseFieldMappings(clazz, classDefinitionMap, facetFields, propertiesDefinitionMap, pathPrefix, indexable);
+            parseFieldMappings(clazz, classDefinitionMap, facetFields, filteredFields, fetchContexts, propertiesDefinitionMap, pathPrefix, indexable);
         }
     }
 
     private void parseFieldMappings(Class<?> clazz, Map<String, Object> classDefinitionMap,
-            List<IFacetBuilderHelper> facetFields, Map<String, Object> propertiesDefinitionMap, String pathPrefix,
+            List<IFacetBuilderHelper> facetFields, List<IFilterBuilderHelper> filteredFields,
+            Map<String, SourceFetchContext> fetchContexts,
+            Map<String, Object> propertiesDefinitionMap, String pathPrefix,
             Indexable indexable) {
         String esFieldName = pathPrefix + indexable.getName();
 
@@ -227,8 +275,9 @@ public class MappingBuilder {
         processRoutingAnnotation(classDefinitionMap, esFieldName, indexable);
         processBoostAnnotation(classDefinitionMap, esFieldName, indexable);
 
-        // process facet annotation
-        processFacetAnnotation(facetFields, esFieldName, indexable);
+        processFetchContextAnnotation(fetchContexts, esFieldName, indexable);
+        processFilterAnnotation(filteredFields, esFieldName, indexable);
+        processFacetAnnotation(facetFields, filteredFields, esFieldName, indexable);
 
         // process the fields
         if (ClassUtils.isPrimitiveOrWrapper(indexable.getType()) || indexable.getType() == String.class) {
@@ -309,15 +358,63 @@ public class MappingBuilder {
         }
     }
 
-    private void processFacetAnnotation(List<IFacetBuilderHelper> classFacets, String esFieldName, Indexable indexable) {
+    private void processFetchContextAnnotation(Map<String, SourceFetchContext> fetchContexts, String esFieldName, Indexable indexable) {
+        FetchContext fetchContext = indexable.getAnnotation(FetchContext.class);
+        if (fetchContext == null) {
+            return;
+        }
+        for (int i = 0; i < fetchContext.contexts().length; i++) {
+            String context = fetchContext.contexts()[i];
+            boolean isInclude = fetchContext.include()[i];
+
+            SourceFetchContext sourceFetchContext = fetchContexts.get(context);
+            if (sourceFetchContext == null) {
+                sourceFetchContext = new SourceFetchContext();
+                fetchContexts.put(context, sourceFetchContext);
+            }
+            if (isInclude) {
+                sourceFetchContext.getIncludes().add(esFieldName);
+            } else {
+                sourceFetchContext.getExcludes().add(esFieldName);
+            }
+        }
+    }
+
+    private void processFilterAnnotation(List<IFilterBuilderHelper> classFilters, String esFieldName, Indexable indexable) {
+        TermFilter termFilter = indexable.getAnnotation(TermFilter.class);
+        if (termFilter != null) {
+            IFilterBuilderHelper facetBuilderHelper = new TermsFilterBuilderHelper(esFieldName);
+            classFilters.add(facetBuilderHelper);
+            return;
+        }
+        RangeFilter rangeFilter = indexable.getAnnotation(RangeFilter.class);
+        if (rangeFilter != null) {
+            IFilterBuilderHelper facetBuilderHelper = new RangeFilterBuilderHelper(esFieldName, rangeFilter);
+            classFilters.add(facetBuilderHelper);
+        }
+    }
+
+    private void processFacetAnnotation(List<IFacetBuilderHelper> classFacets, List<IFilterBuilderHelper> classFilters, String esFieldName, Indexable indexable) {
         TermsFacet termsFacet = indexable.getAnnotation(TermsFacet.class);
         if (termsFacet != null) {
-            classFacets.add(new TermsFacetBuilderHelper(esFieldName, termsFacet));
+            IFacetBuilderHelper facetBuilderHelper = new TermsFacetBuilderHelper(esFieldName, termsFacet);
+            classFacets.add(facetBuilderHelper);
+            if (classFilters.contains(facetBuilderHelper)) {
+                classFilters.remove(facetBuilderHelper);
+                LOGGER.warn("Field <" + esFieldName + "> already had a filter that will be replaced by the defined facet. Only a single one is allowed.");
+            }
+            classFilters.add(facetBuilderHelper);
             return;
         }
         RangeFacet rangeFacet = indexable.getAnnotation(RangeFacet.class);
         if (rangeFacet != null) {
-            classFacets.add(new RangeFacetBuilderHelper(esFieldName, rangeFacet));
+            IFacetBuilderHelper facetBuilderHelper = new RangeFacetBuilderHelper(esFieldName, rangeFacet);
+            classFacets.add(facetBuilderHelper);
+            if (classFilters.contains(facetBuilderHelper)) {
+                classFilters.remove(facetBuilderHelper);
+                LOGGER.warn("Field <" + esFieldName + "> already had a filter that will be replaced by the defined facet. Only a single one is allowed.");
+            }
+            classFilters.add(facetBuilderHelper);
         }
     }
 
