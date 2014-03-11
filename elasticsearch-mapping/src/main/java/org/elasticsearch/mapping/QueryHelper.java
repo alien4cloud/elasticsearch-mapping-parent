@@ -124,16 +124,16 @@ public class QueryHelper {
         if (filters == null) {
             return filterBuilders;
         }
-
-        List<IFacetBuilderHelper> facetBuilderHelpers = mappingBuilder.getFacets(className);
-        if (facetBuilderHelpers == null) {
+        
+        List<IFilterBuilderHelper> filterBuilderHelpers = mappingBuilder.getFilters(className);
+        if (filterBuilderHelpers == null) {
             return filterBuilders;
         }
 
-        for (IFacetBuilderHelper facetBuilderHelper : facetBuilderHelpers) {
-            String esFieldName = facetBuilderHelper.getEsFieldName();
+        for (IFilterBuilderHelper filterBuilderHelper : filterBuilderHelpers) {
+            String esFieldName = filterBuilderHelper.getEsFieldName();
             if (filters.containsKey(esFieldName)) {
-                filterBuilders.add(facetBuilderHelper.buildFilter(esFieldName, filters.get(esFieldName)));
+                filterBuilders.add(filterBuilderHelper.buildFilter(esFieldName, filters.get(esFieldName)));
             }
         }
 
