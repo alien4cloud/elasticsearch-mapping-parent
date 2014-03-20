@@ -92,8 +92,7 @@ public class MappingBuilder {
      * @throws JsonMappingException In case of an error while creating mapping json.
      * @throws JsonGenerationException In case of an error while creating mapping json.
      */
-    public void initialize(String... packages) throws IntrospectionException, JsonGenerationException,
-            JsonMappingException, IOException {
+    public void initialize(String... packages) throws IntrospectionException, JsonGenerationException, JsonMappingException, IOException {
         if (packages != null && packages.length > 0) {
             for (String packageName : packages) {
                 initialize(packageName);
@@ -111,8 +110,7 @@ public class MappingBuilder {
      * @throws IntrospectionException instrospection error.
      * @throws IOException io error.
      */
-    public String getMapping(Class<?> clazz) throws JsonGenerationException, JsonMappingException,
-            IntrospectionException, IOException {
+    public String getMapping(Class<?> clazz) throws JsonGenerationException, JsonMappingException, IntrospectionException, IOException {
         String classMapping = classesMappings.get(clazz.getName());
         if (classMapping == null) {
             parseClassMapping(clazz, "");
@@ -186,16 +184,14 @@ public class MappingBuilder {
         return fetchSourceByContext.get(fetchContext);
     }
 
-    private void initialize(String packageName) throws IntrospectionException, JsonGenerationException,
-            JsonMappingException, IOException {
+    private void initialize(String packageName) throws IntrospectionException, JsonGenerationException, JsonMappingException, IOException {
         Set<Class<?>> classSet = org.elasticsearch.util.AnnotationScanner.scan(packageName, ESObject.class);
         for (Class<?> clazz : classSet) {
             parseClassMapping(clazz, "");
         }
     }
 
-    private void parseClassMapping(Class<?> clazz, String pathPrefix) throws IntrospectionException,
-            JsonGenerationException, JsonMappingException, IOException {
+    private void parseClassMapping(Class<?> clazz, String pathPrefix) throws IntrospectionException, JsonGenerationException, JsonMappingException, IOException {
         ESObject esObject = AnnotationScanner.getAnnotation(ESObject.class, clazz);
         TypeName typeName = clazz.getAnnotation(TypeName.class);
         String typeNameStr;
@@ -215,8 +211,7 @@ public class MappingBuilder {
 
         classDefinitionMap.put("_all", getMap("enabled", esObject.all()));
         classDefinitionMap.put("_source", getMap("enabled", esObject.source()));
-        classDefinitionMap.put("_type",
-                getMap(new String[] { "store", "index" }, new Object[] { esObject.store(), esObject.index() }));
+        classDefinitionMap.put("_type", getMap(new String[] { "store", "index" }, new Object[] { esObject.store(), esObject.index() }));
 
         parseFieldMappings(clazz, classDefinitionMap, facetFields, filteredFields, fetchContexts, pathPrefix);
 
@@ -244,9 +239,8 @@ public class MappingBuilder {
     }
 
     @SuppressWarnings("unchecked")
-    private void parseFieldMappings(Class<?> clazz, Map<String, Object> classDefinitionMap,
-            List<IFacetBuilderHelper> facetFields, List<IFilterBuilderHelper> filteredFields,
-            Map<String, SourceFetchContext> fetchContexts, String pathPrefix) throws IntrospectionException {
+    private void parseFieldMappings(Class<?> clazz, Map<String, Object> classDefinitionMap, List<IFacetBuilderHelper> facetFields,
+            List<IFilterBuilderHelper> filteredFields, Map<String, SourceFetchContext> fetchContexts, String pathPrefix) throws IntrospectionException {
         if (clazz.getSuperclass() != null && clazz.getSuperclass() != Object.class) {
             parseFieldMappings(clazz.getSuperclass(), classDefinitionMap, facetFields, filteredFields, fetchContexts, pathPrefix);
         }
@@ -264,11 +258,9 @@ public class MappingBuilder {
         }
     }
 
-    private void parseFieldMappings(Class<?> clazz, Map<String, Object> classDefinitionMap,
-            List<IFacetBuilderHelper> facetFields, List<IFilterBuilderHelper> filteredFields,
-            Map<String, SourceFetchContext> fetchContexts,
-            Map<String, Object> propertiesDefinitionMap, String pathPrefix,
-            Indexable indexable) {
+    private void parseFieldMappings(Class<?> clazz, Map<String, Object> classDefinitionMap, List<IFacetBuilderHelper> facetFields,
+            List<IFilterBuilderHelper> filteredFields, Map<String, SourceFetchContext> fetchContexts, Map<String, Object> propertiesDefinitionMap,
+            String pathPrefix, Indexable indexable) {
         String esFieldName = pathPrefix + indexable.getName();
 
         processIdAnnotation(classDefinitionMap, esFieldName, indexable);
@@ -312,14 +304,10 @@ public class MappingBuilder {
         Id id = indexable.getAnnotation(Id.class);
         if (id != null) {
             if (classDefinitionMap.containsKey("_id")) {
-                LOGGER.warn("An Id annotation is defined on field <" + esFieldName + "> of <"
-                        + indexable.getDeclaringClassName() + "> but an id has already be defined for <"
-                        + ((Map<String, Object>) classDefinitionMap.get("_id")).get("path") + ">");
+                LOGGER.warn("An Id annotation is defined on field <" + esFieldName + "> of <" + indexable.getDeclaringClassName()
+                        + "> but an id has already be defined for <" + ((Map<String, Object>) classDefinitionMap.get("_id")).get("path") + ">");
             } else {
-                classDefinitionMap.put(
-                        "_id",
-                        getMap(new String[] { "path", "index", "store" },
-                                new Object[] { esFieldName, id.index(), id.store() }));
+                classDefinitionMap.put("_id", getMap(new String[] { "path", "index", "store" }, new Object[] { esFieldName, id.index(), id.store() }));
             }
         }
     }
@@ -329,9 +317,8 @@ public class MappingBuilder {
         Routing routing = indexable.getAnnotation(Routing.class);
         if (routing != null) {
             if (classDefinitionMap.containsKey("_routing")) {
-                LOGGER.warn("A Routing annotation is defined on field <" + esFieldName + "> of <"
-                        + indexable.getDeclaringClassName() + "> but a routing has already be defined for <"
-                        + ((Map<String, Object>) classDefinitionMap.get("_routing")).get("path") + ">");
+                LOGGER.warn("A Routing annotation is defined on field <" + esFieldName + "> of <" + indexable.getDeclaringClassName()
+                        + "> but a routing has already be defined for <" + ((Map<String, Object>) classDefinitionMap.get("_routing")).get("path") + ">");
             } else {
                 Map<String, Object> routingDef = new HashMap<String, Object>();
                 routingDef.put("path", esFieldName);
@@ -346,9 +333,8 @@ public class MappingBuilder {
         Boost boost = indexable.getAnnotation(Boost.class);
         if (boost != null) {
             if (classDefinitionMap.containsKey("_boost")) {
-                LOGGER.warn("A Boost annotation is defined on field <" + esFieldName + "> of <"
-                        + indexable.getDeclaringClassName() + "> but a boost has already be defined for <"
-                        + ((Map<String, Object>) classDefinitionMap.get("_boost")).get("name") + ">");
+                LOGGER.warn("A Boost annotation is defined on field <" + esFieldName + "> of <" + indexable.getDeclaringClassName()
+                        + "> but a boost has already be defined for <" + ((Map<String, Object>) classDefinitionMap.get("_boost")).get("name") + ">");
             } else {
                 Map<String, Object> boostDef = new HashMap<String, Object>();
                 boostDef.put("name", esFieldName);
@@ -383,7 +369,14 @@ public class MappingBuilder {
     private void processFilterAnnotation(List<IFilterBuilderHelper> classFilters, String esFieldName, Indexable indexable) {
         TermFilter termFilter = indexable.getAnnotation(TermFilter.class);
         if (termFilter != null) {
-            IFilterBuilderHelper facetBuilderHelper = new TermsFilterBuilderHelper(esFieldName);
+            String path = termFilter.path().trim();
+            IFilterBuilderHelper facetBuilderHelper;
+            if (path.isEmpty()) {
+                facetBuilderHelper = new TermsFilterBuilderHelper(esFieldName);
+            } else {
+                facetBuilderHelper = new TermsFilterBuilderHelper(esFieldName + "." + path);
+            }
+
             classFilters.add(facetBuilderHelper);
             return;
         }
@@ -397,7 +390,13 @@ public class MappingBuilder {
     private void processFacetAnnotation(List<IFacetBuilderHelper> classFacets, List<IFilterBuilderHelper> classFilters, String esFieldName, Indexable indexable) {
         TermsFacet termsFacet = indexable.getAnnotation(TermsFacet.class);
         if (termsFacet != null) {
-            IFacetBuilderHelper facetBuilderHelper = new TermsFacetBuilderHelper(esFieldName, termsFacet);
+            String path = termsFacet.path().trim();
+            IFacetBuilderHelper facetBuilderHelper;
+            if (path.isEmpty()) {
+                facetBuilderHelper = new TermsFacetBuilderHelper(esFieldName, termsFacet);
+            } else {
+                facetBuilderHelper = new TermsFacetBuilderHelper(esFieldName + "." + path, termsFacet);
+            }
             classFacets.add(facetBuilderHelper);
             if (classFilters.contains(facetBuilderHelper)) {
                 classFilters.remove(facetBuilderHelper);
@@ -418,36 +417,25 @@ public class MappingBuilder {
         }
     }
 
-    private void processStringOrPrimitive(Class<?> clazz, Map<String, Object> propertiesDefinitionMap,
-            String pathPrefix, Indexable indexable) {
-        processFieldAnnotation(IndexName.class, new IndexNameAnnotationParser(), propertiesDefinitionMap, pathPrefix,
-                indexable);
-        processFieldAnnotation(NullValue.class, new NullValueAnnotationParser(), propertiesDefinitionMap, pathPrefix,
-                indexable);
+    private void processStringOrPrimitive(Class<?> clazz, Map<String, Object> propertiesDefinitionMap, String pathPrefix, Indexable indexable) {
+        processFieldAnnotation(IndexName.class, new IndexNameAnnotationParser(), propertiesDefinitionMap, pathPrefix, indexable);
+        processFieldAnnotation(NullValue.class, new NullValueAnnotationParser(), propertiesDefinitionMap, pathPrefix, indexable);
 
         // String field annotations.
-        processFieldAnnotation(StringField.class, new StringFieldAnnotationParser(), propertiesDefinitionMap,
-                pathPrefix, indexable);
-        processFieldAnnotation(Analyser.class, new AnalyserAnnotationParser(), propertiesDefinitionMap, pathPrefix,
-                indexable);
-        processFieldAnnotation(IndexAnalyser.class, new IndexAnalyserAnnotationParser(), propertiesDefinitionMap,
-                pathPrefix, indexable);
-        processFieldAnnotation(SearchAnalyser.class, new SearchAnalyserAnnotationParser(), propertiesDefinitionMap,
-                pathPrefix, indexable);
+        processFieldAnnotation(StringField.class, new StringFieldAnnotationParser(), propertiesDefinitionMap, pathPrefix, indexable);
+        processFieldAnnotation(Analyser.class, new AnalyserAnnotationParser(), propertiesDefinitionMap, pathPrefix, indexable);
+        processFieldAnnotation(IndexAnalyser.class, new IndexAnalyserAnnotationParser(), propertiesDefinitionMap, pathPrefix, indexable);
+        processFieldAnnotation(SearchAnalyser.class, new SearchAnalyserAnnotationParser(), propertiesDefinitionMap, pathPrefix, indexable);
 
         // Numeric field annotation
-        processFieldAnnotation(NumberField.class, new NumberFieldAnnotationParser(), propertiesDefinitionMap,
-                pathPrefix, indexable);
+        processFieldAnnotation(NumberField.class, new NumberFieldAnnotationParser(), propertiesDefinitionMap, pathPrefix, indexable);
 
         // Date field annotation
-        processFieldAnnotation(DateField.class, new DateFieldAnnotationParser(), propertiesDefinitionMap, pathPrefix,
-                indexable);
-        processFieldAnnotation(DateFormat.class, new DateFormatAnnotationParser(), propertiesDefinitionMap, pathPrefix,
-                indexable);
+        processFieldAnnotation(DateField.class, new DateFieldAnnotationParser(), propertiesDefinitionMap, pathPrefix, indexable);
+        processFieldAnnotation(DateFormat.class, new DateFormatAnnotationParser(), propertiesDefinitionMap, pathPrefix, indexable);
 
         // Boolean field annotation
-        processFieldAnnotation(BooleanField.class, new BooleanFieldAnnotationParser(), propertiesDefinitionMap,
-                pathPrefix, indexable);
+        processFieldAnnotation(BooleanField.class, new BooleanFieldAnnotationParser(), propertiesDefinitionMap, pathPrefix, indexable);
         // TODO binary type mapping
     }
 
@@ -456,9 +444,8 @@ public class MappingBuilder {
     }
 
     @SuppressWarnings("unchecked")
-    private <T extends Annotation> void processFieldAnnotation(Class<T> annotationClass,
-            IPropertyAnnotationParser<T> propertyAnnotationParser, Map<String, Object> propertiesDefinitionMap,
-            String pathPrefix, Indexable indexable) {
+    private <T extends Annotation> void processFieldAnnotation(Class<T> annotationClass, IPropertyAnnotationParser<T> propertyAnnotationParser,
+            Map<String, Object> propertiesDefinitionMap, String pathPrefix, Indexable indexable) {
         T annotation = indexable.getAnnotation(annotationClass);
         if (annotation != null) {
             Map<String, Object> fieldDefinition = (Map<String, Object>) propertiesDefinitionMap.get(indexable.getName());
@@ -490,10 +477,8 @@ public class MappingBuilder {
             }
 
             PropertyDescriptor propertyDescriptor = pdMap.get(field.getName());
-            if (propertyDescriptor == null || propertyDescriptor.getReadMethod() == null
-                    || propertyDescriptor.getWriteMethod() == null) {
-                LOGGER.debug("Field <" + field.getName() + "> of class <" + clazz.getName()
-                        + "> has no proper setter/getter and won't be persisted.");
+            if (propertyDescriptor == null || propertyDescriptor.getReadMethod() == null || propertyDescriptor.getWriteMethod() == null) {
+                LOGGER.debug("Field <" + field.getName() + "> of class <" + clazz.getName() + "> has no proper setter/getter and won't be persisted.");
                 continue;
             }
 

@@ -20,33 +20,40 @@ import org.elasticsearch.search.facet.terms.TermsFacet.ComparatorType;
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ ElementType.FIELD, ElementType.METHOD })
 public @interface TermsFacet {
-	/**
-	 * The number of terms to return
-	 * 
-	 * @return The number of terms to return (default is 10).
-	 */
-	int size() default 10;
+    /**
+     * The property sub-path if any.
+     * 
+     * @return The property sub path if any.
+     */
+    String path() default "";
 
-	/**
-	 * Allow to control the ordering of the terms facets, to be ordered by count, term, reverse_count or reverse_term.
-	 * The default is count.
-	 * 
-	 * @return The control on how the term facets are ordered.
-	 */
-	ComparatorType comparatorType() default ComparatorType.COUNT;
+    /**
+     * The number of terms to return
+     * 
+     * @return The number of terms to return (default is 10).
+     */
+    int size() default 10;
 
-	/**
-	 * Allow to get all the terms in the terms facet, ones that do not match a hit, will have a count of 0. Note, this
-	 * should not be used with fields that have many terms.
-	 * 
-	 * @return true or false, default is false.
-	 */
-	boolean allTerms() default false;
+    /**
+     * Allow to control the ordering of the terms facets, to be ordered by count, term, reverse_count or reverse_term.
+     * The default is count.
+     * 
+     * @return The control on how the term facets are ordered.
+     */
+    ComparatorType comparatorType() default ComparatorType.COUNT;
 
-	/**
-	 * Specify a set of terms that should be excluded from the terms facet request result.
-	 * 
-	 * @return Array of terms that should be excluded from the terms facet request result.
-	 */
-	String[] exclude() default {};
+    /**
+     * Allow to get all the terms in the terms facet, ones that do not match a hit, will have a count of 0. Note, this
+     * should not be used with fields that have many terms.
+     * 
+     * @return true or false, default is false.
+     */
+    boolean allTerms() default false;
+
+    /**
+     * Specify a set of terms that should be excluded from the terms facet request result.
+     * 
+     * @return Array of terms that should be excluded from the terms facet request result.
+     */
+    String[] exclude() default {};
 }

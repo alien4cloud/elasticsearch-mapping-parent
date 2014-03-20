@@ -3,7 +3,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>fr.lucboutier.elasticsearch</groupId>
 	<artifactId>elasticsearch-mapping-parent</artifactId>
-	<version>1.1.2-SNAPSHOT</version>
+	<version>1.1.2</version>
 	<packaging>pom</packaging>
 
 	<name>Elastic search mapping parent</name>
