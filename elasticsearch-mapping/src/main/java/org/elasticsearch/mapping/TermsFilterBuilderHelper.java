@@ -20,7 +20,14 @@ public class TermsFilterBuilderHelper extends AbstractFilterBuilderHelper implem
     }
 
     @Override
-    public FilterBuilder buildFilter(final String key, final String value) {
-        return FilterBuilders.termFilter(key, value);
+    public FilterBuilder buildFilter(final String key, final String[] values) {
+        if (values == null || values.length == 0) {
+            throw new IllegalArgumentException("Filter values cannot be null or empty");
+        }
+        if (values.length == 1) {
+            return FilterBuilders.termFilter(key, values[0]);
+        } else {
+            return FilterBuilders.inFilter(key, values);
+        }
     }
 }

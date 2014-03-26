@@ -41,7 +41,22 @@ public class RangeFilterBuilderHelper extends AbstractFilterBuilderHelper implem
     }
 
     @Override
-    public FilterBuilder buildFilter(final String key, final String value) {
+    public FilterBuilder buildFilter(final String key, final String[] rangeValues) {
+        if (rangeValues == null || rangeValues.length == 0) {
+            throw new IllegalArgumentException("Filter values cannot be null or empty");
+        }
+        if (rangeValues.length == 1) {
+            return buildSingleRangeFilter(key, rangeValues[0]);
+        } else {
+            FilterBuilder[] builders = new FilterBuilder[rangeValues.length];
+            for (int i = 0; i < rangeValues.length; i++) {
+                builders[i] = buildSingleRangeFilter(key, rangeValues[i]);
+            }
+            return FilterBuilders.orFilter(builders);
+        }
+    }
+
+    private FilterBuilder buildSingleRangeFilter(String key, String value) {
         String[] values = value.split(" - ");
         if (value.length() == 0) {
             return null;

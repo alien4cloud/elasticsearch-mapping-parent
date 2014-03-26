@@ -49,7 +49,7 @@ public class QueryHelper {
      * @param enableFacets Flag to know if we should include facets in the search request.
      * @return A {@link SearchResponse} object with the results.
      */
-    public SearchResponse doSearch(Class<?> clazz, String[] indexes, String fetchContext, String searchQuery, Map<String, String> filters, int from, int size,
+    public SearchResponse doSearch(Class<?> clazz, String[] indexes, String fetchContext, String searchQuery, Map<String, String[]> filters, int from, int size,
             boolean enableFacets) {
         SearchRequestBuilder searchRequestBuilder = esClient.getClient().prepareSearch(indexes);
 
@@ -87,7 +87,7 @@ public class QueryHelper {
         return searchRequestBuilder.execute().actionGet();
     }
 
-    private void addFilters(SearchRequestBuilder searchRequestBuilder, Class<?> clazz, Map<String, String> filters, boolean enableFacets) {
+    private void addFilters(SearchRequestBuilder searchRequestBuilder, Class<?> clazz, Map<String, String[]> filters, boolean enableFacets) {
         final List<FilterBuilder> esFilters = buildFilters(clazz.getName(), filters);
         FilterBuilder filter = null;
         if (esFilters.size() > 0) {
@@ -100,14 +100,14 @@ public class QueryHelper {
         }
         if (enableFacets) {
             if (filters == null) {
-                addFacets(new HashMap<String, String>(), clazz.getName(), searchRequestBuilder, filter);
+                addFacets(new HashMap<String, String[]>(), clazz.getName(), searchRequestBuilder, filter);
             } else {
                 addFacets(filters, clazz.getName(), searchRequestBuilder, filter);
             }
         }
     }
 
-    private void addFacets(Map<String, String> filters, String className, SearchRequestBuilder searchRequestBuilder,
+    private void addFacets(Map<String, String[]> filters, String className, SearchRequestBuilder searchRequestBuilder,
             FilterBuilder filter) {
         final List<FacetBuilder> facets = buildFacets(className, filters.keySet());
         for (final FacetBuilder facet : facets) {
@@ -118,7 +118,7 @@ public class QueryHelper {
         }
     }
 
-    public List<FilterBuilder> buildFilters(String className, Map<String, String> filters) {
+    public List<FilterBuilder> buildFilters(String className, Map<String, String[]> filters) {
         List<FilterBuilder> filterBuilders = new ArrayList<FilterBuilder>();
 
         if (filters == null) {
