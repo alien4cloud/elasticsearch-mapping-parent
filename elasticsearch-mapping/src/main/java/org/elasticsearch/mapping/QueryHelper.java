@@ -8,6 +8,7 @@ import java.util.Set;
 
 import javax.annotation.Resource;
 
+import org.elasticsearch.action.count.CountRequestBuilder;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.SearchType;
@@ -39,6 +40,34 @@ public class QueryHelper {
     private int maxExpansions;
 
     /**
+     * Create a {@link QueryHelperBuilder} to prepare a query on elastic search.
+     * 
+     * @param indices The indices for which to create a search request.
+     * @return a {@link SearchBuilder} instance.
+     */
+    public QueryHelperBuilder buildQuery(String[] indices) {
+        return buildQuery(indices, null);
+    }
+
+    /**
+     * Create a search builder for the given indices.
+     * 
+     * @param indices The indices for which to create a search request.
+     * @param searchQuery The search text if any, can be null if the request doesn't include a search text.
+     * @return a {@link QueryHelperBuilder} instance.
+     */
+    public QueryHelperBuilder buildQuery(String[] indices, String searchQuery) {
+        QueryBuilder queryBuilder;
+        if (searchQuery == null || searchQuery.trim().isEmpty()) {
+            queryBuilder = QueryBuilders.matchAllQuery();
+        } else {
+            queryBuilder = QueryBuilders.matchPhrasePrefixQuery("_all", searchQuery).maxExpansions(this.maxExpansions);
+        }
+        return new QueryHelperBuilder(indices, queryBuilder);
+    }
+
+    /**
+     * Prepare a search request.
      * 
      * @param clazz The class that we want to query.
      * @param fetchContext The context to apply to the
@@ -49,8 +78,8 @@ public class QueryHelper {
      * @param enableFacets Flag to know if we should include facets in the search request.
      * @return A {@link SearchResponse} object with the results.
      */
-    public SearchResponse doSearch(Class<?> clazz, String[] indexes, String fetchContext, String searchQuery, Map<String, String[]> filters, int from, int size,
-            boolean enableFacets) {
+    public SearchResponse doSearch(Class<?> clazz, String[] indexes, String fetchContext, String searchQuery, Map<String, String[]> filters, int from,
+            int size, boolean enableFacets) {
         SearchRequestBuilder searchRequestBuilder = esClient.getClient().prepareSearch(indexes);
 
         QueryBuilder queryBuilder;
@@ -107,8 +136,7 @@ public class QueryHelper {
         }
     }
 
-    private void addFacets(Map<String, String[]> filters, String className, SearchRequestBuilder searchRequestBuilder,
-            FilterBuilder filter) {
+    private void addFacets(Map<String, String[]> filters, String className, SearchRequestBuilder searchRequestBuilder, FilterBuilder filter) {
         final List<FacetBuilder> facets = buildFacets(className, filters.keySet());
         for (final FacetBuilder facet : facets) {
             if (filter != null) {
@@ -124,7 +152,7 @@ public class QueryHelper {
         if (filters == null) {
             return filterBuilders;
         }
-        
+
         List<IFilterBuilderHelper> filterBuilderHelpers = mappingBuilder.getFilters(className);
         if (filterBuilderHelpers == null) {
             return filterBuilders;
@@ -177,5 +205,62 @@ public class QueryHelper {
     @Value("#{elasticsearchConfig['elasticSearch.prefix_max_expansions']}")
     public void setMaxExpansions(final int maxExpansions) {
         this.maxExpansions = maxExpansions;
+    }
+
+    /**
+     * Builder for search requests.
+     */
+    public class QueryHelperBuilder {
+        private final String[] indices;
+        private final QueryBuilder queryBuilder;
+        private Class<?>[] classes;
+        private String fetchContext;
+
+        private QueryHelperBuilder(String[] indices, QueryBuilder queryBuilder) {
+            this.indices = indices;
+            this.queryBuilder = queryBuilder;
+        }
+
+        /**
+         * Specify types to query.
+         * 
+         * @param classes The types to query.
+         */
+        public void types(Class<?>... classes) {
+            this.classes = classes;
+        }
+
+        /**
+         * Specifies the fetch context to use for the search.
+         * 
+         * @param fetchContext The fetch context to use for the query.
+         */
+        public void fetchContext(String fetchContexts) {
+            this.fetchContext = fetchContexts;
+        }
+
+        /**
+         * Execute a search query using the defined query.
+         * 
+         * @param from The start index of the search (for pagination).
+         * @param size The maximum number of elements to return.
+         */
+        public void search(int from, int size) {
+            SearchRequestBuilder searchRequestBuilder = esClient.getClient().prepareSearch(this.indices);
+            searchRequestBuilder.setSearchType(SearchType.QUERY_THEN_FETCH).setQuery(queryBuilder).setSize(size).setFrom(from);
+
+        }
+
+        /**
+         * Execute a search query using the defined query.
+         */
+        public void count() {
+            CountRequestBuilder countRequestBuilder = esClient.getClient().prepareCount(this.indices);
+
+        }
+    }
+
+    public class SearchHelperBuilder {
+
     }
 }

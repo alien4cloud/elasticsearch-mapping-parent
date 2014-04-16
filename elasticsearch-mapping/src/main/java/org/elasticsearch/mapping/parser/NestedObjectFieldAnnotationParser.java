@@ -38,7 +38,7 @@ public class NestedObjectFieldAnnotationParser implements IPropertyAnnotationPar
         List<IFilterBuilderHelper> filters = Lists.newArrayList();
         Map<String, SourceFetchContext> fetchContext = Maps.newHashMap();
         // nested types can provide replacement class to be managed. This can be usefull to override map default type for example.
-        Class<?> replaceClass = annotation.getNestedClass().equals(NestedObject.class) ? indexable.getType() : annotation.getNestedClass();
+        Class<?> replaceClass = annotation.nestedClass().equals(NestedObject.class) ? indexable.getType() : annotation.nestedClass();
         try {
             this.fieldsMappingBuilder.parseFieldMappings(replaceClass, fieldDefinition, facets, filters, fetchContext, "");
         } catch (IntrospectionException e) {

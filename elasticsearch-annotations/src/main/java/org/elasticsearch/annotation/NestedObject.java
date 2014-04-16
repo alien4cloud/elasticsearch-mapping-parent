@@ -14,5 +14,5 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ ElementType.FIELD, ElementType.METHOD })
 public @interface NestedObject {
-    Class<?> getNestedClass() default NestedObject.class;
+    Class<?> nestedClass() default NestedObject.class;
 }
