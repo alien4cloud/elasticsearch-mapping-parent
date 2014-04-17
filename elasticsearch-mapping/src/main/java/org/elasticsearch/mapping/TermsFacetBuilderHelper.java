@@ -20,10 +20,12 @@ public class TermsFacetBuilderHelper extends TermsFilterBuilderHelper implements
     /**
      * Initialize from the configuration annotation.
      * 
+     * @param nestedPath The path to the nested object if any.
+     * @param esFieldName The name of the field on which to apply the filter.
      * @param termsFacet the configuration annotation.
      */
-    public TermsFacetBuilderHelper(final String esFieldName, TermsFacet termsFacet) {
-        super(esFieldName);
+    public TermsFacetBuilderHelper(final String nestedPath, final String esFieldName, TermsFacet termsFacet) {
+        super(nestedPath, esFieldName);
         this.size = termsFacet.size();
         this.allTerms = termsFacet.allTerms();
         this.comparatorType = termsFacet.comparatorType();

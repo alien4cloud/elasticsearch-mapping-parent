@@ -7,21 +7,37 @@ package org.elasticsearch.mapping;
  * @author luc boutier
  */
 public abstract class AbstractFilterBuilderHelper {
-    private final String esFieldName;
+    private final String nestedPath;
+    private final String filterPath;
 
-    public AbstractFilterBuilderHelper(final String esFieldName) {
-        this.esFieldName = esFieldName;
+    /**
+     * Create a filter for the given field.
+     * 
+     * @param nestedPath The path to the nested object if any.
+     * @param filterPath The path to the field to filter.
+     */
+    public AbstractFilterBuilderHelper(final String nestedPath, final String filterPath) {
+        this.nestedPath = nestedPath;
+        this.filterPath = filterPath;
     }
 
-    public String getEsFieldName() {
-        return esFieldName;
+    public String getFilterPath() {
+        return filterPath;
+    }
+
+    public String getNestedPath() {
+        return nestedPath;
+    }
+
+    public String getFullPath() {
+        return nestedPath == null ? filterPath : nestedPath + "." + filterPath;
     }
 
     @Override
     public int hashCode() {
         final int prime = 31;
         int result = 1;
-        result = prime * result + ((esFieldName == null) ? 0 : esFieldName.hashCode());
+        result = prime * result + ((getFullPath() == null) ? 0 : getFullPath().hashCode());
         return result;
     }
 
@@ -34,10 +50,10 @@ public abstract class AbstractFilterBuilderHelper {
         if (getClass() != obj.getClass())
             return false;
         AbstractFilterBuilderHelper other = (AbstractFilterBuilderHelper) obj;
-        if (esFieldName == null) {
-            if (other.esFieldName != null)
+        if (getFullPath() == null) {
+            if (other.getFullPath() != null)
                 return false;
-        } else if (!esFieldName.equals(other.esFieldName))
+        } else if (!getFullPath().equals(other.getFullPath()))
             return false;
         return true;
     }

@@ -203,19 +203,24 @@ public class FieldsMappingBuilder {
         TermFilter termFilter = indexable.getAnnotation(TermFilter.class);
         if (termFilter != null) {
             String path = termFilter.path().trim();
-            IFilterBuilderHelper facetBuilderHelper;
-            if (path.isEmpty()) {
-                facetBuilderHelper = new TermsFilterBuilderHelper(esFieldName);
+            String nestedPath = indexable.getAnnotation(NestedObject.class) == null ? null : esFieldName;
+            String filterPath;
+            if (nestedPath == null) {
+                filterPath = path.isEmpty() ? esFieldName : esFieldName + "." + path;
             } else {
-                facetBuilderHelper = new TermsFilterBuilderHelper(esFieldName + "." + path);
+                if (path.isEmpty()) {
+                    LOGGER.warn("Unable to map filter for field <" + esFieldName + "> Nested objects requires to specify a path on the filter.");
+                    return;
+                }
+                filterPath = path;
             }
 
-            classFilters.add(facetBuilderHelper);
+            classFilters.add(new TermsFilterBuilderHelper(nestedPath, filterPath));
             return;
         }
         RangeFilter rangeFilter = indexable.getAnnotation(RangeFilter.class);
         if (rangeFilter != null) {
-            IFilterBuilderHelper facetBuilderHelper = new RangeFilterBuilderHelper(esFieldName, rangeFilter);
+            IFilterBuilderHelper facetBuilderHelper = new RangeFilterBuilderHelper(null, esFieldName, rangeFilter);
             classFilters.add(facetBuilderHelper);
         }
     }
@@ -224,12 +229,19 @@ public class FieldsMappingBuilder {
         TermsFacet termsFacet = indexable.getAnnotation(TermsFacet.class);
         if (termsFacet != null) {
             String path = termsFacet.path().trim();
-            IFacetBuilderHelper facetBuilderHelper;
-            if (path.isEmpty()) {
-                facetBuilderHelper = new TermsFacetBuilderHelper(esFieldName, termsFacet);
+            String nestedPath = indexable.getAnnotation(NestedObject.class) == null ? null : esFieldName;
+            String filterPath;
+            if (nestedPath == null) {
+                filterPath = path.isEmpty() ? esFieldName : esFieldName + "." + path;
             } else {
-                facetBuilderHelper = new TermsFacetBuilderHelper(esFieldName + "." + path, termsFacet);
+                if (path.isEmpty()) {
+                    LOGGER.warn("Unable to map filter for field <" + esFieldName + "> Nested objects requires to specify a path on the filter.");
+                    return;
+                }
+                filterPath = path;
             }
+
+            IFacetBuilderHelper facetBuilderHelper = new TermsFacetBuilderHelper(nestedPath, filterPath, termsFacet);
             classFacets.add(facetBuilderHelper);
             if (classFilters.contains(facetBuilderHelper)) {
                 classFilters.remove(facetBuilderHelper);
@@ -240,7 +252,7 @@ public class FieldsMappingBuilder {
         }
         RangeFacet rangeFacet = indexable.getAnnotation(RangeFacet.class);
         if (rangeFacet != null) {
-            IFacetBuilderHelper facetBuilderHelper = new RangeFacetBuilderHelper(esFieldName, rangeFacet);
+            IFacetBuilderHelper facetBuilderHelper = new RangeFacetBuilderHelper(null, esFieldName, rangeFacet);
             classFacets.add(facetBuilderHelper);
             if (classFilters.contains(facetBuilderHelper)) {
                 classFilters.remove(facetBuilderHelper);

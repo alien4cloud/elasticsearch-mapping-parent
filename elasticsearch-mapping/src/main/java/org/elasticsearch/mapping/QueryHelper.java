@@ -9,11 +9,13 @@ import java.util.Set;
 import javax.annotation.Resource;
 
 import org.elasticsearch.action.count.CountRequestBuilder;
+import org.elasticsearch.action.count.CountResponse;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.SearchType;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.FilterBuilder;
 import org.elasticsearch.index.query.FilterBuilders;
 import org.elasticsearch.index.query.QueryBuilder;
@@ -40,13 +42,13 @@ public class QueryHelper {
     private int maxExpansions;
 
     /**
-     * Create a {@link QueryHelperBuilder} to prepare a query on elastic search.
+     * Create a {@link SearchQueryHelperBuilder} to prepare a query on elastic search.
      * 
      * @param indices The indices for which to create a search request.
-     * @return a {@link SearchBuilder} instance.
+     * @return a {@link SearchQueryHelperBuilder} instance.
      */
-    public QueryHelperBuilder buildQuery(String[] indices) {
-        return buildQuery(indices, null);
+    public SearchQueryHelperBuilder buildSearchQuery(String[] indices) {
+        return buildSearchQuery(indices, null);
     }
 
     /**
@@ -54,153 +56,74 @@ public class QueryHelper {
      * 
      * @param indices The indices for which to create a search request.
      * @param searchQuery The search text if any, can be null if the request doesn't include a search text.
-     * @return a {@link QueryHelperBuilder} instance.
+     * @return a {@link SearchQueryHelperBuilder} instance.
      */
-    public QueryHelperBuilder buildQuery(String[] indices, String searchQuery) {
-        QueryBuilder queryBuilder;
-        if (searchQuery == null || searchQuery.trim().isEmpty()) {
-            queryBuilder = QueryBuilders.matchAllQuery();
-        } else {
-            queryBuilder = QueryBuilders.matchPhrasePrefixQuery("_all", searchQuery).maxExpansions(this.maxExpansions);
-        }
-        return new QueryHelperBuilder(indices, queryBuilder);
+    public SearchQueryHelperBuilder buildSearchQuery(String[] indices, String searchQuery) {
+        return new SearchQueryHelperBuilder(indices, searchQuery);
     }
 
     /**
-     * Prepare a search request.
+     * Create a suggest query based search builder for the given indices.
      * 
-     * @param clazz The class that we want to query.
-     * @param fetchContext The context to apply to the
+     * @param indices The indices for which to create a search request.
+     * @param searchPrefix The value of the current prefix for suggestion.
+     * @param suggestFieldPath The path to the field for which to manage suggestion.
+     * @return a {@link SearchQueryHelperBuilder} instance.
+     */
+    public SearchQueryHelperBuilder buildSearchSuggestQuery(String[] indices, String searchPrefix, String suggestFieldPath) {
+        return new SearchQueryHelperBuilder(indices, searchPrefix, suggestFieldPath);
+    }
+
+    /**
+     * Create a count builder to prepare a query on elastic search.
+     * 
+     * @param indices The indices for which to create a count request.
+     * @return a {@link CountQueryHelperBuilder} instance.
+     */
+    public CountQueryHelperBuilder buildCountQuery(String[] indices) {
+        return buildCountQuery(indices, null);
+    }
+
+    /**
+     * Create a count builder for the given indices.
+     * 
+     * @param indices The indices for which to create a count request.
      * @param searchQuery The search text if any, can be null if the request doesn't include a search text.
-     * @param filters The set of filters for the request (field/value pairs).
-     * @param from The start index of the search (for pagination).
-     * @param size The maximum number of elements to return.
-     * @param enableFacets Flag to know if we should include facets in the search request.
-     * @return A {@link SearchResponse} object with the results.
+     * @return a {@link CountQueryHelperBuilder} instance.
      */
-    public SearchResponse doSearch(Class<?> clazz, String[] indexes, String fetchContext, String searchQuery, Map<String, String[]> filters, int from,
-            int size, boolean enableFacets) {
-        SearchRequestBuilder searchRequestBuilder = esClient.getClient().prepareSearch(indexes);
-
-        QueryBuilder queryBuilder;
-        if (searchQuery == null || searchQuery.trim().isEmpty()) {
-            queryBuilder = QueryBuilders.matchAllQuery();
-        } else {
-            queryBuilder = QueryBuilders.matchPhrasePrefixQuery("_all", searchQuery).maxExpansions(this.maxExpansions);
-        }
-
-        searchRequestBuilder.setSearchType(SearchType.QUERY_THEN_FETCH).setQuery(queryBuilder).setSize(size).setFrom(from);
-
-        if (clazz != null) {
-            searchRequestBuilder.setTypes(MappingBuilder.indexTypeFromClass(clazz));
-            // set filters
-            addFilters(searchRequestBuilder, clazz, filters, enableFacets);
-
-            if (fetchContext != null) {
-                // get the fetch context for the given type and apply it to the search
-                SourceFetchContext sourceFetchContext = mappingBuilder.getFetchSource(clazz.getName(), fetchContext);
-                if (sourceFetchContext != null) {
-                    String[] includes = sourceFetchContext.getIncludes().isEmpty() ? null : sourceFetchContext.getIncludes().toArray(
-                            new String[sourceFetchContext.getIncludes().size()]);
-                    String[] excludes = sourceFetchContext.getExcludes().isEmpty() ? null : sourceFetchContext.getExcludes().toArray(
-                            new String[sourceFetchContext.getExcludes().size()]);
-                    searchRequestBuilder.setFetchSource(includes, excludes);
-                } else {
-                    LOGGER.warn("Unable to find fetch context <" + fetchContext + "> for class <" + clazz.getName() + ">. It will be ignored.");
-                }
-            }
-        }
-
-        searchRequestBuilder.addSort(SortBuilders.scoreSort());
-
-        return searchRequestBuilder.execute().actionGet();
-    }
-
-    private void addFilters(SearchRequestBuilder searchRequestBuilder, Class<?> clazz, Map<String, String[]> filters, boolean enableFacets) {
-        final List<FilterBuilder> esFilters = buildFilters(clazz.getName(), filters);
-        FilterBuilder filter = null;
-        if (esFilters.size() > 0) {
-            if (esFilters.size() == 1) {
-                filter = esFilters.get(0);
-            } else {
-                filter = FilterBuilders.andFilter(esFilters.toArray(new FilterBuilder[esFilters.size()]));
-            }
-            searchRequestBuilder.setPostFilter(filter);
-        }
-        if (enableFacets) {
-            if (filters == null) {
-                addFacets(new HashMap<String, String[]>(), clazz.getName(), searchRequestBuilder, filter);
-            } else {
-                addFacets(filters, clazz.getName(), searchRequestBuilder, filter);
-            }
-        }
-    }
-
-    private void addFacets(Map<String, String[]> filters, String className, SearchRequestBuilder searchRequestBuilder, FilterBuilder filter) {
-        final List<FacetBuilder> facets = buildFacets(className, filters.keySet());
-        for (final FacetBuilder facet : facets) {
-            if (filter != null) {
-                facet.facetFilter(filter);
-            }
-            searchRequestBuilder.addFacet(facet);
-        }
-    }
-
-    public List<FilterBuilder> buildFilters(String className, Map<String, String[]> filters) {
-        List<FilterBuilder> filterBuilders = new ArrayList<FilterBuilder>();
-
-        if (filters == null) {
-            return filterBuilders;
-        }
-
-        List<IFilterBuilderHelper> filterBuilderHelpers = mappingBuilder.getFilters(className);
-        if (filterBuilderHelpers == null) {
-            return filterBuilders;
-        }
-
-        for (IFilterBuilderHelper filterBuilderHelper : filterBuilderHelpers) {
-            String esFieldName = filterBuilderHelper.getEsFieldName();
-            if (filters.containsKey(esFieldName)) {
-                filterBuilders.add(filterBuilderHelper.buildFilter(esFieldName, filters.get(esFieldName)));
-            }
-        }
-
-        return filterBuilders;
+    public CountQueryHelperBuilder buildCountQuery(String[] indices, String searchQuery) {
+        return new CountQueryHelperBuilder(indices, searchQuery);
     }
 
     /**
-     * Create a list of facets for the given type.
+     * Create a suggest query based count builder for the given indices.
      * 
-     * @param clazz The class for which to create facets.
-     * @param filters The set of facets to exclude from the facet creation.
-     * @return a {@link List} of {@link AbstractFacetBuilder facet builders}.
+     * @param indices The indices for which to create a search request.
+     * @param searchPrefix The value of the current prefix for suggestion.
+     * @param suggestFieldPath The path to the field for which to manage suggestion.
+     * @return a {@link CountQueryHelperBuilder} instance.
      */
-    public List<FacetBuilder> buildFacets(Class<?> clazz, Set<String> filters) {
-        return buildFacets(clazz.getName(), filters);
+    public CountQueryHelperBuilder buildCountSuggestQuery(String[] indices, String searchPrefix, String suggestFieldPath) {
+        return new CountQueryHelperBuilder(indices, searchPrefix, suggestFieldPath);
     }
 
-    /**
-     * Create a list of facets for the given type.
-     * 
-     * @param className The name of the class for which to create facets.
-     * @param filters The set of facets to exclude from the facet creation.
-     * @return a {@link List} of {@link AbstractFacetBuilder facet builders}.
-     */
-    public List<FacetBuilder> buildFacets(String className, Set<String> filters) {
-        final List<FacetBuilder> facetBuilders = new ArrayList<FacetBuilder>();
-
-        List<IFacetBuilderHelper> facetBuilderHelpers = mappingBuilder.getFacets(className);
-        if (facetBuilderHelpers == null) {
-            return facetBuilders;
-        }
-
-        for (IFacetBuilderHelper facetBuilderHelper : facetBuilderHelpers) {
-            if (filters == null || !filters.contains(facetBuilderHelper.getEsFieldName())) {
-                facetBuilders.add(facetBuilderHelper.buildFacet());
-            }
-        }
-        return facetBuilders;
-    }
+//    /**
+//     * Prepare a search request.
+//     * 
+//     * @param clazz The class that we want to query.
+//     * @param indices The indices for which to create a search request.
+//     * @param fetchContext The context to apply to the
+//     * @param searchQuery The search text if any, can be null if the request doesn't include a search text.
+//     * @param filters The set of filters for the request (field/value pairs).
+//     * @param from The start index of the search (for pagination).
+//     * @param size The maximum number of elements to return.
+//     * @param enableFacets Flag to know if we should include facets in the search request.
+//     * @return A {@link SearchResponse} object with the results.
+//     */
+//    public SearchResponse doSearch(Class<?> clazz, String[] indices, String fetchContext, String searchQuery, Map<String, String[]> filters, int from,
+//            int size, boolean enableFacets) {
+//        return buildSearchQuery(indices, searchQuery).types(clazz).fetchContext(fetchContext).filters(filters).facets(enableFacets).search(from, size);
+//    }
 
     @Value("#{elasticsearchConfig['elasticSearch.prefix_max_expansions']}")
     public void setMaxExpansions(final int maxExpansions) {
@@ -208,16 +131,36 @@ public class QueryHelper {
     }
 
     /**
-     * Builder for search requests.
+     * Builder utility for search requests.
      */
-    public class QueryHelperBuilder {
-        private final String[] indices;
-        private final QueryBuilder queryBuilder;
-        private Class<?>[] classes;
-        private String fetchContext;
+    private abstract class QueryHelperBuilder<T> {
+        protected final String prefixField;
+        protected final String[] indices;
+        protected final QueryBuilder queryBuilder;
+        protected Class<?>[] classes;
+        protected Map<String, String[]> filters;
 
-        private QueryHelperBuilder(String[] indices, QueryBuilder queryBuilder) {
+        private QueryHelperBuilder(String[] indices, String searchQuery) {
             this.indices = indices;
+            this.prefixField = null;
+            QueryBuilder queryBuilder;
+            if (searchQuery == null || searchQuery.trim().isEmpty()) {
+                queryBuilder = QueryBuilders.matchAllQuery();
+            } else {
+                queryBuilder = QueryBuilders.matchPhrasePrefixQuery("_all", searchQuery).maxExpansions(maxExpansions);
+            }
+            this.queryBuilder = queryBuilder;
+        }
+
+        private QueryHelperBuilder(String[] indices, String searchPrefix, String prefixField) {
+            this.indices = indices;
+            this.prefixField = prefixField;
+            QueryBuilder queryBuilder;
+            if (searchPrefix == null || searchPrefix.trim().isEmpty()) {
+                queryBuilder = QueryBuilders.matchAllQuery();
+            } else {
+                queryBuilder = QueryBuilders.prefixQuery(prefixField, searchPrefix);
+            }
             this.queryBuilder = queryBuilder;
         }
 
@@ -225,18 +168,133 @@ public class QueryHelper {
          * Specify types to query.
          * 
          * @param classes The types to query.
+         * @return this
          */
-        public void types(Class<?>... classes) {
+        @SuppressWarnings("unchecked")
+        public T types(Class<?>... classes) {
             this.classes = classes;
+            return (T) this;
         }
 
         /**
-         * Specifies the fetch context to use for the search.
+         * Specifies filters to use for the request.
+         * 
+         * @param filters Map of filter key, valid values to create filters.
+         * @return this
+         */
+        @SuppressWarnings("unchecked")
+        public T filters(Map<String, String[]> filters) {
+            this.filters = filters;
+            return (T) this;
+        }
+
+        protected String[] getTypes() {
+            if (this.classes == null) {
+                return null;
+            }
+            List<String> types = new ArrayList<String>(this.classes.length);
+            for (Class<?> clazz : classes) {
+                if (clazz != null) {
+                    types.add(MappingBuilder.indexTypeFromClass(clazz));
+                }
+            }
+            if (types.isEmpty()) {
+                return null;
+            }
+            return types.toArray(new String[types.size()]);
+        }
+    }
+
+    /**
+     * Helper to build count queries.
+     * 
+     * @author luc boutier
+     */
+    public class CountQueryHelperBuilder extends QueryHelperBuilder<CountQueryHelperBuilder> {
+        private CountQueryHelperBuilder(String[] indices, String searchQuery) {
+            super(indices, searchQuery);
+        }
+
+        private CountQueryHelperBuilder(String[] indices, String searchPrefix, String prefixField) {
+            super(indices, searchPrefix, prefixField);
+        }
+
+        /**
+         * Perform a count request.
+         * 
+         * @return The count response.
+         */
+        public CountResponse count() {
+            CountRequestBuilder countRequestBuilder = esClient.getClient().prepareCount(this.indices);
+            countRequestBuilder.setTypes();
+            // Count query doesn't have filters, they must be managed as boolean query element.
+            QueryBuilder countQueryBuilder = buildQueryFilters();
+            countRequestBuilder.setQuery(countQueryBuilder);
+
+            return countRequestBuilder.execute().actionGet();
+        }
+
+        private QueryBuilder buildQueryFilters() {
+            if (filters == null) {
+                return queryBuilder;
+            }
+            BoolQueryBuilder boolQueryBuilder = new BoolQueryBuilder();
+            boolQueryBuilder.must(queryBuilder);
+
+            for (Class<?> clazz : classes) {
+                if (clazz != null) {
+                    List<IFilterBuilderHelper> filterBuilderHelpers = mappingBuilder.getFilters(clazz.getName());
+                    if (filterBuilderHelpers != null) {
+                        for (IFilterBuilderHelper filterBuilderHelper : filterBuilderHelpers) {
+                            String esFieldName = filterBuilderHelper.getEsFieldName();
+                            if (filters.containsKey(esFieldName)) {
+                                boolQueryBuilder.must(filterBuilderHelper.buildQuery(esFieldName, filters.get(esFieldName)));
+                            }
+                        }
+                    }
+                }
+            }
+            return boolQueryBuilder;
+        }
+    }
+
+    /**
+     * Helper to build search queries.
+     * 
+     * @author luc boutier
+     */
+    public class SearchQueryHelperBuilder extends QueryHelperBuilder<SearchQueryHelperBuilder> {
+        private String fetchContext;
+        private boolean facets = false;
+
+        private SearchQueryHelperBuilder(String[] indices, String searchQuery) {
+            super(indices, searchQuery);
+        }
+
+        private SearchQueryHelperBuilder(String[] indices, String searchPrefix, String prefixField) {
+            super(indices, searchPrefix, prefixField);
+        }
+
+        /**
+         * Specifies the fetch context to use for the search (fetch context is not used for count).
          * 
          * @param fetchContext The fetch context to use for the query.
+         * @return this
          */
-        public void fetchContext(String fetchContexts) {
-            this.fetchContext = fetchContexts;
+        public SearchQueryHelperBuilder fetchContext(String fetchContext) {
+            this.fetchContext = fetchContext;
+            return this;
+        }
+
+        /**
+         * Enable or disable facets computation for the search request.
+         * 
+         * @param fetchContext The fetch context to use for the query.
+         * @return this
+         */
+        public SearchQueryHelperBuilder facets(boolean facets) {
+            this.facets = facets;
+            return this;
         }
 
         /**
@@ -245,22 +303,126 @@ public class QueryHelper {
          * @param from The start index of the search (for pagination).
          * @param size The maximum number of elements to return.
          */
-        public void search(int from, int size) {
+        public SearchResponse search(int from, int size) {
             SearchRequestBuilder searchRequestBuilder = esClient.getClient().prepareSearch(this.indices);
             searchRequestBuilder.setSearchType(SearchType.QUERY_THEN_FETCH).setQuery(queryBuilder).setSize(size).setFrom(from);
+            searchRequestBuilder.setTypes(getTypes());
+            if (classes != null && classes.length > 0) {
+                addFetchContext(searchRequestBuilder);
+                for (Class<?> clazz : classes) {
+                    addFilters(searchRequestBuilder, clazz);
+                }
+            }
+            if (prefixField == null) {
+                searchRequestBuilder.addSort(SortBuilders.scoreSort());
+            } else {
+                searchRequestBuilder.addSort(SortBuilders.fieldSort(prefixField));
+            }
+            return searchRequestBuilder.execute().actionGet();
+        }
 
+        private void addFetchContext(SearchRequestBuilder searchRequestBuilder) {
+            if (fetchContext == null) {
+                return;
+            }
+
+            List<String> includes = new ArrayList<String>();
+            List<String> excludes = new ArrayList<String>();
+
+            for (Class<?> clazz : classes) {
+                if (clazz != null) {
+                    // get the fetch context for the given type and apply it to the search
+                    SourceFetchContext sourceFetchContext = mappingBuilder.getFetchSource(clazz.getName(), fetchContext);
+                    if (sourceFetchContext != null) {
+                        includes.addAll(sourceFetchContext.getIncludes());
+                        excludes.addAll(sourceFetchContext.getExcludes());
+                    } else {
+                        LOGGER.warn("Unable to find fetch context <" + fetchContext + "> for class <" + clazz.getName() + ">. It will be ignored.");
+                    }
+                }
+            }
+
+            String[] inc = includes.isEmpty() ? null : includes.toArray(new String[includes.size()]);
+            String[] exc = excludes.isEmpty() ? null : excludes.toArray(new String[excludes.size()]);
+            searchRequestBuilder.setFetchSource(inc, exc);
+        }
+
+        private void addFilters(SearchRequestBuilder searchRequestBuilder, Class<?> clazz) {
+            if (clazz == null) {
+                return;
+            }
+            final List<FilterBuilder> esFilters = buildFilters(clazz.getName(), filters);
+            FilterBuilder filter = null;
+            if (esFilters.size() > 0) {
+                if (esFilters.size() == 1) {
+                    filter = esFilters.get(0);
+                } else {
+                    filter = FilterBuilders.andFilter(esFilters.toArray(new FilterBuilder[esFilters.size()]));
+                }
+                searchRequestBuilder.setPostFilter(filter);
+            }
+            if (facets) {
+                if (filters == null) {
+                    addFacets(new HashMap<String, String[]>(), clazz.getName(), searchRequestBuilder, filter);
+                } else {
+                    addFacets(filters, clazz.getName(), searchRequestBuilder, filter);
+                }
+            }
+        }
+
+        private void addFacets(Map<String, String[]> filters, String className, SearchRequestBuilder searchRequestBuilder, FilterBuilder filter) {
+            final List<FacetBuilder> facets = buildFacets(className, filters.keySet());
+            for (final FacetBuilder facet : facets) {
+                if (filter != null) {
+                    facet.facetFilter(filter);
+                }
+                searchRequestBuilder.addFacet(facet);
+            }
+        }
+
+        private List<FilterBuilder> buildFilters(String className, Map<String, String[]> filters) {
+            List<FilterBuilder> filterBuilders = new ArrayList<FilterBuilder>();
+
+            if (filters == null) {
+                return filterBuilders;
+            }
+
+            List<IFilterBuilderHelper> filterBuilderHelpers = mappingBuilder.getFilters(className);
+            if (filterBuilderHelpers == null) {
+                return filterBuilders;
+            }
+
+            for (IFilterBuilderHelper filterBuilderHelper : filterBuilderHelpers) {
+                String esFieldName = filterBuilderHelper.getEsFieldName();
+                if (filters.containsKey(esFieldName)) {
+                    filterBuilders.add(filterBuilderHelper.buildFilter(esFieldName, filters.get(esFieldName)));
+                }
+            }
+
+            return filterBuilders;
         }
 
         /**
-         * Execute a search query using the defined query.
+         * Create a list of facets for the given type.
+         * 
+         * @param className The name of the class for which to create facets.
+         * @param filters The set of facets to exclude from the facet creation.
+         * @return a {@link List} of {@link AbstractFacetBuilder facet builders}.
          */
-        public void count() {
-            CountRequestBuilder countRequestBuilder = esClient.getClient().prepareCount(this.indices);
+        private List<FacetBuilder> buildFacets(String className, Set<String> filters) {
+            final List<FacetBuilder> facetBuilders = new ArrayList<FacetBuilder>();
 
+            List<IFacetBuilderHelper> facetBuilderHelpers = mappingBuilder.getFacets(className);
+            if (facetBuilderHelpers == null) {
+                return facetBuilders;
+            }
+
+            for (IFacetBuilderHelper facetBuilderHelper : facetBuilderHelpers) {
+                if (filters == null || !filters.contains(facetBuilderHelper.getEsFieldName())) {
+                    facetBuilders.add(facetBuilderHelper.buildFacet());
+                }
+            }
+            return facetBuilders;
         }
-    }
-
-    public class SearchHelperBuilder {
-
     }
 }
