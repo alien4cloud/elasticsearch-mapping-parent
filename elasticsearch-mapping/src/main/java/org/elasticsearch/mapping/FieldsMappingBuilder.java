@@ -203,19 +203,14 @@ public class FieldsMappingBuilder {
         TermFilter termFilter = indexable.getAnnotation(TermFilter.class);
         if (termFilter != null) {
             String path = termFilter.path().trim();
+            boolean isAnalyzed = isAnalyzed(path, indexable);
             String nestedPath = indexable.getAnnotation(NestedObject.class) == null ? null : esFieldName;
-            String filterPath;
-            if (nestedPath == null) {
-                filterPath = path.isEmpty() ? esFieldName : esFieldName + "." + path;
-            } else {
-                if (path.isEmpty()) {
-                    LOGGER.warn("Unable to map filter for field <" + esFieldName + "> Nested objects requires to specify a path on the filter.");
-                    return;
-                }
-                filterPath = path;
+            String filterPath = getFilterPath(path, nestedPath, esFieldName, indexable);
+            if (filterPath == null) {
+                return;
             }
 
-            classFilters.add(new TermsFilterBuilderHelper(nestedPath, filterPath));
+            classFilters.add(new TermsFilterBuilderHelper(isAnalyzed, nestedPath, filterPath));
             return;
         }
         RangeFilter rangeFilter = indexable.getAnnotation(RangeFilter.class);
@@ -229,19 +224,14 @@ public class FieldsMappingBuilder {
         TermsFacet termsFacet = indexable.getAnnotation(TermsFacet.class);
         if (termsFacet != null) {
             String path = termsFacet.path().trim();
+            boolean isAnalyzed = isAnalyzed(path, indexable);
             String nestedPath = indexable.getAnnotation(NestedObject.class) == null ? null : esFieldName;
-            String filterPath;
-            if (nestedPath == null) {
-                filterPath = path.isEmpty() ? esFieldName : esFieldName + "." + path;
-            } else {
-                if (path.isEmpty()) {
-                    LOGGER.warn("Unable to map filter for field <" + esFieldName + "> Nested objects requires to specify a path on the filter.");
-                    return;
-                }
-                filterPath = path;
+            String filterPath = getFilterPath(path, nestedPath, esFieldName, indexable);
+            if (filterPath == null) {
+                return;
             }
 
-            IFacetBuilderHelper facetBuilderHelper = new TermsFacetBuilderHelper(nestedPath, filterPath, termsFacet);
+            IFacetBuilderHelper facetBuilderHelper = new TermsFacetBuilderHelper(isAnalyzed, nestedPath, filterPath, termsFacet);
             classFacets.add(facetBuilderHelper);
             if (classFilters.contains(facetBuilderHelper)) {
                 classFilters.remove(facetBuilderHelper);
@@ -260,6 +250,33 @@ public class FieldsMappingBuilder {
             }
             classFilters.add(facetBuilderHelper);
         }
+    }
+
+    private String getFilterPath(String path, String nestedPath, String esFieldName, Indexable indexable) {
+        String filterPath;
+        if (nestedPath == null) {
+            filterPath = path.isEmpty() ? esFieldName : esFieldName + "." + path;
+        } else {
+            if (path.isEmpty()) {
+                LOGGER.warn("Unable to map filter for field <" + esFieldName + "> Nested objects requires to specify a path on the filter.");
+                return null;
+            }
+            filterPath = path;
+        }
+        return filterPath;
+    }
+
+    private boolean isAnalyzed(String path, Indexable indexable) {
+        boolean isAnalysed = true;
+        if (!path.isEmpty()) {
+            StringField stringFieldAnnotation = indexable.getAnnotation(StringField.class);
+            if (stringFieldAnnotation != null) {
+                if (!IndexType.analyzed.equals(stringFieldAnnotation.indexType())) {
+                    isAnalysed = false;
+                }
+            }
+        }
+        return isAnalysed;
     }
 
     private void processStringOrPrimitive(Class<?> clazz, Map<String, Object> propertiesDefinitionMap, String pathPrefix, Indexable indexable) {

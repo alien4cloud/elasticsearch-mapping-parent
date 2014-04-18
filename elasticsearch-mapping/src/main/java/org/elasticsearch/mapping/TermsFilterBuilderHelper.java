@@ -11,15 +11,18 @@ import org.elasticsearch.index.query.QueryBuilders;
  * @author luc boutier
  */
 public class TermsFilterBuilderHelper extends AbstractFilterBuilderHelper implements IFilterBuilderHelper {
+    private final boolean isAnalyzed;
 
     /**
      * Initialize the helper to build term filters.
      * 
+     * @param isAnalyzed True if the filtered field is analyzed, false if not.
      * @param nestedPath The path to the nested object if any.
      * @param filterPath The path to the field to filter.
      */
-    public TermsFilterBuilderHelper(final String nestedPath, final String filterPath) {
+    public TermsFilterBuilderHelper(final boolean isAnalyzed, final String nestedPath, final String filterPath) {
         super(nestedPath, filterPath);
+        this.isAnalyzed = isAnalyzed;
     }
 
     @Override
@@ -50,6 +53,11 @@ public class TermsFilterBuilderHelper extends AbstractFilterBuilderHelper implem
     public QueryBuilder buildQuery(String key, String[] values) {
         if (values == null || values.length == 0) {
             throw new IllegalArgumentException("Filter values cannot be null or empty");
+        }
+        if (isAnalyzed) {
+            for (int i = 0; i < values.length; i++) {
+                values[i] = values[i] == null ? null : values[i].toLowerCase();
+            }
         }
         if (getNestedPath() == null) {
             return buildTermQuery(key, values);

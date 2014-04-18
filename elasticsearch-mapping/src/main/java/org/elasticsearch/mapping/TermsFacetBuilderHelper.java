@@ -20,12 +20,13 @@ public class TermsFacetBuilderHelper extends TermsFilterBuilderHelper implements
     /**
      * Initialize from the configuration annotation.
      * 
+     * @param isAnalyzed True if the filtered field is analyzed, false if not.
      * @param nestedPath The path to the nested object if any.
      * @param esFieldName The name of the field on which to apply the filter.
      * @param termsFacet the configuration annotation.
      */
-    public TermsFacetBuilderHelper(final String nestedPath, final String esFieldName, TermsFacet termsFacet) {
-        super(nestedPath, esFieldName);
+    public TermsFacetBuilderHelper(final boolean isAnalyzed, final String nestedPath, final String esFieldName, TermsFacet termsFacet) {
+        super(isAnalyzed, nestedPath, esFieldName);
         this.size = termsFacet.size();
         this.allTerms = termsFacet.allTerms();
         this.comparatorType = termsFacet.comparatorType();
