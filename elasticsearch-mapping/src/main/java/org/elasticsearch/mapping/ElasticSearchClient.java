@@ -3,9 +3,11 @@ package org.elasticsearch.mapping;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 
+import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequestBuilder;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.node.NodeBuilder;
 import org.springframework.beans.factory.annotation.Value;
@@ -26,11 +28,19 @@ public class ElasticSearchClient {
     private boolean isLocal;
     private String clusterName;
     private boolean resetData = false;
+    private boolean waitForClusterStatus = false;
 
     @PostConstruct
     public void initialize() {
-        this.node = NodeBuilder.nodeBuilder().client(this.isClient).clusterName(this.clusterName).local(this.isLocal)
-                .node();
+        this.node = NodeBuilder.nodeBuilder().client(this.isClient).clusterName(this.clusterName).local(this.isLocal).node();
+
+        if (waitForClusterStatus) {
+            ClusterHealthRequestBuilder builder = new ClusterHealthRequestBuilder(node.client().admin().cluster());
+            builder.setWaitForGreenStatus();
+            builder.setTimeout(TimeValue.timeValueMinutes(5));
+            builder.execute().actionGet();
+        }
+
         if (this.resetData) { // removes all indices from elastic search. For Integration testing only.
             // this.node.client().admin().indices().prepareDelete().execute().actionGet();
         }
@@ -77,6 +87,11 @@ public class ElasticSearchClient {
     @Value("#{elasticsearchConfig['elasticSearch.resetData']}")
     public void setResetData(final boolean resetData) {
         this.resetData = resetData;
+    }
+
+    @Value("#{elasticsearchConfig['elasticSearch.waitForClusterStatus']}")
+    public void setWaitForClusterStatus(final boolean waitForClusterStatus) {
+        this.waitForClusterStatus = waitForClusterStatus;
     }
 
 }
