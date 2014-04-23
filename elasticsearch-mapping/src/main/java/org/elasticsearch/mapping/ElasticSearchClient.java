@@ -4,6 +4,7 @@ import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequestBuilder;
+import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
@@ -28,18 +29,10 @@ public class ElasticSearchClient {
     private boolean isLocal;
     private String clusterName;
     private boolean resetData = false;
-    private boolean waitForClusterStatus = false;
 
     @PostConstruct
     public void initialize() {
         this.node = NodeBuilder.nodeBuilder().client(this.isClient).clusterName(this.clusterName).local(this.isLocal).node();
-
-        if (waitForClusterStatus) {
-            ClusterHealthRequestBuilder builder = new ClusterHealthRequestBuilder(node.client().admin().cluster());
-            builder.setWaitForGreenStatus();
-            builder.setTimeout(TimeValue.timeValueMinutes(5));
-            builder.execute().actionGet();
-        }
 
         if (this.resetData) { // removes all indices from elastic search. For Integration testing only.
             // this.node.client().admin().indices().prepareDelete().execute().actionGet();
@@ -62,6 +55,30 @@ public class ElasticSearchClient {
      */
     public Client getClient() {
         return this.node.client();
+    }
+
+    /**
+     * Wait for green status for the given indices.
+     * 
+     * @param indices The indices to wait for.
+     * @return A {@link ClusterHealthResponse} that contains the cluster health after waiting maximum 5 minutes for green status.
+     */
+    public ClusterHealthResponse waitForGreenStatus(String... indices) {
+        ClusterHealthRequestBuilder builder = new ClusterHealthRequestBuilder(node.client().admin().cluster());
+        builder.setIndices(indices);
+        builder.setWaitForGreenStatus();
+        builder.setTimeout(TimeValue.timeValueSeconds(30));
+        ClusterHealthResponse response = builder.execute().actionGet();
+        LOGGER.debug("getStatus                : {}", response.getStatus());
+        LOGGER.debug("getActivePrimaryShards   : {}", response.getActivePrimaryShards());
+        LOGGER.debug("getActiveShards          : {}", response.getActiveShards());
+        LOGGER.debug("getInitializingShards    : {}", response.getInitializingShards());
+        LOGGER.debug("getNumberOfDataNodes     : {}", response.getNumberOfDataNodes());
+        LOGGER.debug("getNumberOfNodes         : {}", response.getNumberOfNodes());
+        LOGGER.debug("getRelocatingShards      : {}", response.getRelocatingShards());
+        LOGGER.debug("getUnassignedShards      : {}", response.getUnassignedShards());
+        LOGGER.debug("getAllValidationFailures : {}", response.getAllValidationFailures());
+        return response;
     }
 
     @PreDestroy
@@ -88,10 +105,4 @@ public class ElasticSearchClient {
     public void setResetData(final boolean resetData) {
         this.resetData = resetData;
     }
-
-    @Value("#{elasticsearchConfig['elasticSearch.waitForClusterStatus']}")
-    public void setWaitForClusterStatus(final boolean waitForClusterStatus) {
-        this.waitForClusterStatus = waitForClusterStatus;
-    }
-
 }

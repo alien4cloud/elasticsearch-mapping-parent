@@ -6,7 +6,7 @@ package org.elasticsearch.mapping;
  * 
  * @author luc boutier
  */
-public abstract class AbstractFilterBuilderHelper {
+public abstract class AbstractFilterBuilderHelper implements IFilterBuilderHelper {
     private final String nestedPath;
     private final String filterPath;
 
@@ -25,11 +25,16 @@ public abstract class AbstractFilterBuilderHelper {
         return filterPath;
     }
 
+    @Override
+    public boolean isNested() {
+        return nestedPath != null;
+    }
+
     public String getNestedPath() {
         return nestedPath;
     }
 
-    public String getFullPath() {
+    public String getEsFieldName() {
         return nestedPath == null ? filterPath : nestedPath + "." + filterPath;
     }
 
@@ -37,7 +42,7 @@ public abstract class AbstractFilterBuilderHelper {
     public int hashCode() {
         final int prime = 31;
         int result = 1;
-        result = prime * result + ((getFullPath() == null) ? 0 : getFullPath().hashCode());
+        result = prime * result + ((getEsFieldName() == null) ? 0 : getEsFieldName().hashCode());
         return result;
     }
 
@@ -50,10 +55,10 @@ public abstract class AbstractFilterBuilderHelper {
         if (getClass() != obj.getClass())
             return false;
         AbstractFilterBuilderHelper other = (AbstractFilterBuilderHelper) obj;
-        if (getFullPath() == null) {
-            if (other.getFullPath() != null)
+        if (getEsFieldName() == null) {
+            if (other.getEsFieldName() != null)
                 return false;
-        } else if (!getFullPath().equals(other.getFullPath()))
+        } else if (!getEsFieldName().equals(other.getEsFieldName()))
             return false;
         return true;
     }

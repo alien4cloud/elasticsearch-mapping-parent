@@ -43,6 +43,9 @@ public class ElasticSearchInsertMappingTest {
     public void testMappingAndInsert() throws Exception {
         String indexName = Person.class.getSimpleName().toLowerCase();
         initIndexes(indexName, new Class[] { Person.class });
+
+        esClient.waitForGreenStatus(indexName);
+
         Person person = new Person();
         person.setId("personId");
         person.setFirstname("firstname");
@@ -59,15 +62,13 @@ public class ElasticSearchInsertMappingTest {
 
     public void initIndexes(String indexName, Class<?>[] classes) throws Exception {
         // check if existing before
-        final ActionFuture<IndicesExistsResponse> indexExistFuture = esClient.getClient().admin()
-                .indices().exists(new IndicesExistsRequest(indexName));
+        final ActionFuture<IndicesExistsResponse> indexExistFuture = esClient.getClient().admin().indices().exists(new IndicesExistsRequest(indexName));
         IndicesExistsResponse response;
         response = indexExistFuture.get();
 
         if (!response.isExists()) {
             // create the index and add the mapping
-            CreateIndexRequestBuilder createIndexRequestBuilder = esClient.getClient().admin()
-                    .indices().prepareCreate(indexName);
+            CreateIndexRequestBuilder createIndexRequestBuilder = esClient.getClient().admin().indices().prepareCreate(indexName);
 
             for (Class<?> clazz : classes) {
                 createIndexRequestBuilder.addMapping(clazz.getSimpleName().toLowerCase(), mappingBuilder.getMapping(clazz));
@@ -81,14 +82,11 @@ public class ElasticSearchInsertMappingTest {
 
     public void save(String indexName, Person data) throws JsonGenerationException, JsonMappingException, IOException {
         String json = jsonMapper.writeValueAsString(data);
-        esClient.getClient().prepareIndex(indexName, indexName).setOperationThreaded(false)
-                .setSource(json).setRefresh(true).execute().actionGet();
+        esClient.getClient().prepareIndex(indexName, indexName).setOperationThreaded(false).setSource(json).setRefresh(true).execute().actionGet();
     }
 
     public Person readById(String indexName, String id) throws JsonParseException, JsonMappingException, IOException {
-        GetResponse response = esClient.getClient().prepareGet(indexName, indexName, id)
-                .execute()
-                .actionGet();
+        GetResponse response = esClient.getClient().prepareGet(indexName, indexName, id).execute().actionGet();
 
         if (response == null || !response.isExists()) {
             return null;

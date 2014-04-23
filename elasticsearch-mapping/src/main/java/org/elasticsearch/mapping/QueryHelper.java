@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import javax.annotation.Resource;
@@ -107,23 +108,23 @@ public class QueryHelper {
         return new CountQueryHelperBuilder(indices, searchPrefix, suggestFieldPath);
     }
 
-//    /**
-//     * Prepare a search request.
-//     * 
-//     * @param clazz The class that we want to query.
-//     * @param indices The indices for which to create a search request.
-//     * @param fetchContext The context to apply to the
-//     * @param searchQuery The search text if any, can be null if the request doesn't include a search text.
-//     * @param filters The set of filters for the request (field/value pairs).
-//     * @param from The start index of the search (for pagination).
-//     * @param size The maximum number of elements to return.
-//     * @param enableFacets Flag to know if we should include facets in the search request.
-//     * @return A {@link SearchResponse} object with the results.
-//     */
-//    public SearchResponse doSearch(Class<?> clazz, String[] indices, String fetchContext, String searchQuery, Map<String, String[]> filters, int from,
-//            int size, boolean enableFacets) {
-//        return buildSearchQuery(indices, searchQuery).types(clazz).fetchContext(fetchContext).filters(filters).facets(enableFacets).search(from, size);
-//    }
+    // /**
+    // * Prepare a search request.
+    // *
+    // * @param clazz The class that we want to query.
+    // * @param indices The indices for which to create a search request.
+    // * @param fetchContext The context to apply to the
+    // * @param searchQuery The search text if any, can be null if the request doesn't include a search text.
+    // * @param filters The set of filters for the request (field/value pairs).
+    // * @param from The start index of the search (for pagination).
+    // * @param size The maximum number of elements to return.
+    // * @param enableFacets Flag to know if we should include facets in the search request.
+    // * @return A {@link SearchResponse} object with the results.
+    // */
+    // public SearchResponse doSearch(Class<?> clazz, String[] indices, String fetchContext, String searchQuery, Map<String, String[]> filters, int from,
+    // int size, boolean enableFacets) {
+    // return buildSearchQuery(indices, searchQuery).types(clazz).fetchContext(fetchContext).filters(filters).facets(enableFacets).search(from, size);
+    // }
 
     @Value("#{elasticsearchConfig['elasticSearch.prefix_max_expansions']}")
     public void setMaxExpansions(final int maxExpansions) {
@@ -241,20 +242,46 @@ public class QueryHelper {
             BoolQueryBuilder boolQueryBuilder = new BoolQueryBuilder();
             boolQueryBuilder.must(queryBuilder);
 
+            Map<String, List<QueryBuilder>> nestedQueryBuildersMap = new HashMap<String, List<QueryBuilder>>();
+
             for (Class<?> clazz : classes) {
-                if (clazz != null) {
-                    List<IFilterBuilderHelper> filterBuilderHelpers = mappingBuilder.getFilters(clazz.getName());
-                    if (filterBuilderHelpers != null) {
-                        for (IFilterBuilderHelper filterBuilderHelper : filterBuilderHelpers) {
-                            String esFieldName = filterBuilderHelper.getEsFieldName();
-                            if (filters.containsKey(esFieldName)) {
-                                boolQueryBuilder.must(filterBuilderHelper.buildQuery(esFieldName, filters.get(esFieldName)));
-                            }
-                        }
+                buildClassQueryFilters(nestedQueryBuildersMap, boolQueryBuilder, clazz);
+            }
+
+            for (Entry<String, List<QueryBuilder>> nestedQuery : nestedQueryBuildersMap.entrySet()) {
+                BoolQueryBuilder nestedBoolQueryBuilder = new BoolQueryBuilder();
+
+                for (QueryBuilder filterQueryBuilder : nestedQuery.getValue()) {
+                    nestedBoolQueryBuilder.must(filterQueryBuilder);
+                }
+
+                boolQueryBuilder.must(QueryBuilders.nestedQuery(nestedQuery.getKey(), nestedBoolQueryBuilder));
+            }
+
+            return boolQueryBuilder;
+        }
+
+        private void buildClassQueryFilters(Map<String, List<QueryBuilder>> nestedQueryBuildersMap, BoolQueryBuilder boolQueryBuilder, Class<?> clazz) {
+            if (clazz == null) {
+                return;
+            }
+
+            List<IFilterBuilderHelper> filterBuilderHelpers = mappingBuilder.getFilters(clazz.getName());
+            if (filterBuilderHelpers == null) {
+                return;
+            }
+
+            for (IFilterBuilderHelper filterBuilderHelper : filterBuilderHelpers) {
+                String esFieldName = filterBuilderHelper.getEsFieldName();
+                if (filters.containsKey(esFieldName)) {
+                    if (filterBuilderHelper.isNested()) {
+                        List<QueryBuilder> nestedQueryBuilders = nestedQueryBuildersMap.get(filterBuilderHelper.getNestedPath());
+                        nestedQueryBuilders.add(filterBuilderHelper.buildQuery(esFieldName, filters.get(esFieldName)));
+                    } else {
+                        boolQueryBuilder.must(filterBuilderHelper.buildQuery(esFieldName, filters.get(esFieldName)));
                     }
                 }
             }
-            return boolQueryBuilder;
         }
     }
 
@@ -354,11 +381,7 @@ public class QueryHelper {
             final List<FilterBuilder> esFilters = buildFilters(clazz.getName(), filters);
             FilterBuilder filter = null;
             if (esFilters.size() > 0) {
-                if (esFilters.size() == 1) {
-                    filter = esFilters.get(0);
-                } else {
-                    filter = FilterBuilders.andFilter(esFilters.toArray(new FilterBuilder[esFilters.size()]));
-                }
+                filter = getAndFitler(esFilters);
                 searchRequestBuilder.setPostFilter(filter);
             }
             if (facets) {
@@ -387,6 +410,7 @@ public class QueryHelper {
                 return filterBuilders;
             }
 
+            Map<String, List<FilterBuilder>> nestedFilterBuilders = new HashMap<String, List<FilterBuilder>>();
             List<IFilterBuilderHelper> filterBuilderHelpers = mappingBuilder.getFilters(className);
             if (filterBuilderHelpers == null) {
                 return filterBuilders;
@@ -395,11 +419,31 @@ public class QueryHelper {
             for (IFilterBuilderHelper filterBuilderHelper : filterBuilderHelpers) {
                 String esFieldName = filterBuilderHelper.getEsFieldName();
                 if (filters.containsKey(esFieldName)) {
-                    filterBuilders.add(filterBuilderHelper.buildFilter(esFieldName, filters.get(esFieldName)));
+                    if (filterBuilderHelper.isNested()) {
+                        List<FilterBuilder> nestedFilters = nestedFilterBuilders.get(filterBuilderHelper.getNestedPath());
+                        if (nestedFilters == null) {
+                            nestedFilters = new ArrayList<FilterBuilder>(3);
+                            nestedFilterBuilders.put(filterBuilderHelper.getNestedPath(), nestedFilters);
+                        }
+                        nestedFilters.add(filterBuilderHelper.buildFilter(esFieldName, filters.get(esFieldName)));
+                    } else {
+                        filterBuilders.add(filterBuilderHelper.buildFilter(esFieldName, filters.get(esFieldName)));
+                    }
                 }
             }
 
+            for (Entry<String, List<FilterBuilder>> nestedFilters : nestedFilterBuilders.entrySet()) {
+                filterBuilders.add(FilterBuilders.nestedFilter(nestedFilters.getKey(), getAndFitler(nestedFilters.getValue())));
+            }
+
             return filterBuilders;
+        }
+
+        private FilterBuilder getAndFitler(List<FilterBuilder> filters) {
+            if (filters.size() == 1) {
+                return filters.get(0);
+            }
+            return FilterBuilders.andFilter(filters.toArray(new FilterBuilder[filters.size()]));
         }
 
         /**

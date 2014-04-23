@@ -14,7 +14,7 @@ import org.elasticsearch.index.query.RangeQueryBuilder;
  * 
  * @author luc boutier
  */
-public class RangeFilterBuilderHelper extends AbstractFilterBuilderHelper implements IFilterBuilderHelper {
+public class RangeFilterBuilderHelper extends AbstractFilterBuilderHelper {
     private final double[] ranges;
 
     /**
@@ -44,11 +44,6 @@ public class RangeFilterBuilderHelper extends AbstractFilterBuilderHelper implem
         if (this.ranges.length % 2 != 0) {
             throw new IllegalArgumentException("Size of ranges must an even number.");
         }
-    }
-
-    @Override
-    public String getEsFieldName() {
-        return getFullPath();
     }
 
     @Override

@@ -10,7 +10,7 @@ import org.elasticsearch.index.query.QueryBuilders;
  * 
  * @author luc boutier
  */
-public class TermsFilterBuilderHelper extends AbstractFilterBuilderHelper implements IFilterBuilderHelper {
+public class TermsFilterBuilderHelper extends AbstractFilterBuilderHelper {
     private final boolean isAnalyzed;
 
     /**
@@ -26,27 +26,14 @@ public class TermsFilterBuilderHelper extends AbstractFilterBuilderHelper implem
     }
 
     @Override
-    public String getEsFieldName() {
-        return getFullPath();
-    }
-
-    @Override
     public FilterBuilder buildFilter(final String key, final String[] values) {
         if (values == null || values.length == 0) {
             throw new IllegalArgumentException("Filter values cannot be null or empty");
         }
-        if (getNestedPath() == null) {
-            return buildTermFilter(key, values);
-        }
-        return FilterBuilders.nestedFilter(getNestedPath(), buildTermFilter(getFilterPath(), values));
-    }
-
-    private FilterBuilder buildTermFilter(final String key, final String[] values) {
         if (values.length == 1) {
             return FilterBuilders.termFilter(key, values[0]);
-        } else {
-            return FilterBuilders.inFilter(key, values);
         }
+        return FilterBuilders.inFilter(key, values);
     }
 
     @Override
@@ -59,17 +46,10 @@ public class TermsFilterBuilderHelper extends AbstractFilterBuilderHelper implem
                 values[i] = values[i] == null ? null : values[i].toLowerCase();
             }
         }
-        if (getNestedPath() == null) {
-            return buildTermQuery(key, values);
-        }
-        return QueryBuilders.nestedQuery(getNestedPath(), buildTermQuery(getFilterPath(), values));
-    }
 
-    private QueryBuilder buildTermQuery(final String key, final String[] values) {
         if (values.length == 1) {
             return QueryBuilders.termQuery(key, values[0]);
-        } else {
-            return QueryBuilders.inQuery(key, values);
         }
+        return QueryBuilders.inQuery(key, values);
     }
 }
