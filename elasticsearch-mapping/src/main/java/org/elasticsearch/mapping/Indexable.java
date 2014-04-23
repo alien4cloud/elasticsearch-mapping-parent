@@ -39,11 +39,7 @@ public class Indexable {
     }
 
     public String getName() {
-        if (field != null) {
-            return field.getName();
-        } else {
-            return propertyDescriptor.getName();
-        }
+        return propertyDescriptor.getName();
     }
 
     public Class<?> getType() {

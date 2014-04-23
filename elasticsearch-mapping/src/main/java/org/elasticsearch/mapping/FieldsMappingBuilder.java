@@ -346,13 +346,18 @@ public class FieldsMappingBuilder {
                 continue;
             }
 
-            PropertyDescriptor propertyDescriptor = pdMap.get(field.getName());
+            String pdName = field.getName();
+            if (field.getType().equals(Boolean.TYPE) && field.getName().startsWith("is")) {
+                pdName = field.getName().substring(2, 3).toLowerCase() + field.getName().substring(3, field.getName().length());
+            }
+            PropertyDescriptor propertyDescriptor = pdMap.get(pdName);
+
             if (propertyDescriptor == null || propertyDescriptor.getReadMethod() == null || propertyDescriptor.getWriteMethod() == null) {
                 LOGGER.debug("Field <" + field.getName() + "> of class <" + clazz.getName() + "> has no proper setter/getter and won't be persisted.");
                 continue;
             }
 
-            fdMap.put(field.getName(), field);
+            fdMap.put(pdName, field);
         }
         Set<String> allIndexablesName = new HashSet<String>();
         allIndexablesName.addAll(pdMap.keySet());
