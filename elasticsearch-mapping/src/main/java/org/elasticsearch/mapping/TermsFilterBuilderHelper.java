@@ -27,9 +27,7 @@ public class TermsFilterBuilderHelper extends AbstractFilterBuilderHelper {
 
     @Override
     public FilterBuilder buildFilter(final String key, final String[] values) {
-        if (values == null || values.length == 0) {
-            throw new IllegalArgumentException("Filter values cannot be null or empty");
-        }
+        preProcessValues(values);
         if (values.length == 1) {
             return FilterBuilders.termFilter(key, values[0]);
         }
@@ -38,6 +36,14 @@ public class TermsFilterBuilderHelper extends AbstractFilterBuilderHelper {
 
     @Override
     public QueryBuilder buildQuery(String key, String[] values) {
+        preProcessValues(values);
+        if (values.length == 1) {
+            return QueryBuilders.termQuery(key, values[0]);
+        }
+        return QueryBuilders.inQuery(key, values);
+    }
+
+    private void preProcessValues(String[] values) {
         if (values == null || values.length == 0) {
             throw new IllegalArgumentException("Filter values cannot be null or empty");
         }
@@ -46,10 +52,5 @@ public class TermsFilterBuilderHelper extends AbstractFilterBuilderHelper {
                 values[i] = values[i] == null ? null : values[i].toLowerCase();
             }
         }
-
-        if (values.length == 1) {
-            return QueryBuilders.termQuery(key, values[0]);
-        }
-        return QueryBuilders.inQuery(key, values);
     }
 }

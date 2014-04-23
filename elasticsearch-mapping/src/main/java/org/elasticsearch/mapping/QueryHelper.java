@@ -21,6 +21,7 @@ import org.elasticsearch.index.query.FilterBuilder;
 import org.elasticsearch.index.query.FilterBuilders;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.index.query.functionscore.ScoreFunctionBuilders;
 import org.elasticsearch.search.facet.FacetBuilder;
 import org.elasticsearch.search.sort.SortBuilders;
 import org.springframework.beans.factory.annotation.Value;
@@ -293,6 +294,7 @@ public class QueryHelper {
     public class SearchQueryHelperBuilder extends QueryHelperBuilder<SearchQueryHelperBuilder> {
         private String fetchContext;
         private boolean facets = false;
+        private String functionScore;
 
         private SearchQueryHelperBuilder(String[] indices, String searchQuery) {
             super(indices, searchQuery);
@@ -325,6 +327,17 @@ public class QueryHelper {
         }
 
         /**
+         * Allows to define a script to perform a function score query.
+         * 
+         * @param functionScore The script for the function score.
+         * @return this
+         */
+        public SearchQueryHelperBuilder functionScore(String functionScore) {
+            this.functionScore = functionScore;
+            return this;
+        }
+
+        /**
          * Execute a search query using the defined query.
          * 
          * @param from The start index of the search (for pagination).
@@ -332,7 +345,12 @@ public class QueryHelper {
          */
         public SearchResponse search(int from, int size) {
             SearchRequestBuilder searchRequestBuilder = esClient.getClient().prepareSearch(this.indices);
-            searchRequestBuilder.setSearchType(SearchType.QUERY_THEN_FETCH).setQuery(queryBuilder).setSize(size).setFrom(from);
+            searchRequestBuilder.setSearchType(SearchType.QUERY_THEN_FETCH).setSize(size).setFrom(from);
+            if (functionScore == null) {
+                searchRequestBuilder.setQuery(queryBuilder);
+            } else {
+                searchRequestBuilder.setQuery(QueryBuilders.functionScoreQuery(queryBuilder, ScoreFunctionBuilders.scriptFunction(functionScore)));
+            }
             searchRequestBuilder.setTypes(getTypes());
             if (classes != null && classes.length > 0) {
                 addFetchContext(searchRequestBuilder);
@@ -340,6 +358,7 @@ public class QueryHelper {
                     addFilters(searchRequestBuilder, clazz);
                 }
             }
+
             if (prefixField == null) {
                 searchRequestBuilder.addSort(SortBuilders.scoreSort());
             } else {

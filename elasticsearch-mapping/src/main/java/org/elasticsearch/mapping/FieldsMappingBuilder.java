@@ -205,7 +205,7 @@ public class FieldsMappingBuilder {
             String[] paths = termFilter.paths();
             for (String path : paths) {
                 path = path.trim();
-                boolean isAnalyzed = isAnalyzed(path, indexable);
+                boolean isAnalyzed = isAnalyzed(indexable);
                 String nestedPath = indexable.getAnnotation(NestedObject.class) == null ? null : esFieldName;
                 String filterPath = getFilterPath(path, nestedPath, esFieldName, indexable);
                 if (filterPath == null) {
@@ -229,7 +229,7 @@ public class FieldsMappingBuilder {
             String[] paths = termsFacet.paths();
             for (String path : paths) {
                 path = path.trim();
-                boolean isAnalyzed = isAnalyzed(path, indexable);
+                boolean isAnalyzed = isAnalyzed(indexable);
                 String nestedPath = indexable.getAnnotation(NestedObject.class) == null ? null : esFieldName;
                 String filterPath = getFilterPath(path, nestedPath, esFieldName, indexable);
                 if (filterPath == null) {
@@ -272,14 +272,12 @@ public class FieldsMappingBuilder {
         return filterPath;
     }
 
-    private boolean isAnalyzed(String path, Indexable indexable) {
+    private boolean isAnalyzed(Indexable indexable) {
         boolean isAnalysed = true;
-        if (!path.isEmpty()) {
-            StringField stringFieldAnnotation = indexable.getAnnotation(StringField.class);
-            if (stringFieldAnnotation != null) {
-                if (!IndexType.analyzed.equals(stringFieldAnnotation.indexType())) {
-                    isAnalysed = false;
-                }
+        StringField stringFieldAnnotation = indexable.getAnnotation(StringField.class);
+        if (stringFieldAnnotation != null) {
+            if (!IndexType.analyzed.equals(stringFieldAnnotation.indexType())) {
+                isAnalysed = false;
             }
         }
         return isAnalysed;
