@@ -202,15 +202,18 @@ public class FieldsMappingBuilder {
     private void processFilterAnnotation(List<IFilterBuilderHelper> classFilters, String esFieldName, Indexable indexable) {
         TermFilter termFilter = indexable.getAnnotation(TermFilter.class);
         if (termFilter != null) {
-            String path = termFilter.path().trim();
-            boolean isAnalyzed = isAnalyzed(path, indexable);
-            String nestedPath = indexable.getAnnotation(NestedObject.class) == null ? null : esFieldName;
-            String filterPath = getFilterPath(path, nestedPath, esFieldName, indexable);
-            if (filterPath == null) {
-                return;
-            }
+            String[] paths = termFilter.paths();
+            for (String path : paths) {
+                path = path.trim();
+                boolean isAnalyzed = isAnalyzed(path, indexable);
+                String nestedPath = indexable.getAnnotation(NestedObject.class) == null ? null : esFieldName;
+                String filterPath = getFilterPath(path, nestedPath, esFieldName, indexable);
+                if (filterPath == null) {
+                    return;
+                }
 
-            classFilters.add(new TermsFilterBuilderHelper(isAnalyzed, nestedPath, filterPath));
+                classFilters.add(new TermsFilterBuilderHelper(isAnalyzed, nestedPath, filterPath));
+            }
             return;
         }
         RangeFilter rangeFilter = indexable.getAnnotation(RangeFilter.class);
@@ -223,21 +226,24 @@ public class FieldsMappingBuilder {
     private void processFacetAnnotation(List<IFacetBuilderHelper> classFacets, List<IFilterBuilderHelper> classFilters, String esFieldName, Indexable indexable) {
         TermsFacet termsFacet = indexable.getAnnotation(TermsFacet.class);
         if (termsFacet != null) {
-            String path = termsFacet.path().trim();
-            boolean isAnalyzed = isAnalyzed(path, indexable);
-            String nestedPath = indexable.getAnnotation(NestedObject.class) == null ? null : esFieldName;
-            String filterPath = getFilterPath(path, nestedPath, esFieldName, indexable);
-            if (filterPath == null) {
-                return;
-            }
+            String[] paths = termsFacet.paths();
+            for (String path : paths) {
+                path = path.trim();
+                boolean isAnalyzed = isAnalyzed(path, indexable);
+                String nestedPath = indexable.getAnnotation(NestedObject.class) == null ? null : esFieldName;
+                String filterPath = getFilterPath(path, nestedPath, esFieldName, indexable);
+                if (filterPath == null) {
+                    return;
+                }
 
-            IFacetBuilderHelper facetBuilderHelper = new TermsFacetBuilderHelper(isAnalyzed, nestedPath, filterPath, termsFacet);
-            classFacets.add(facetBuilderHelper);
-            if (classFilters.contains(facetBuilderHelper)) {
-                classFilters.remove(facetBuilderHelper);
-                LOGGER.warn("Field <" + esFieldName + "> already had a filter that will be replaced by the defined facet. Only a single one is allowed.");
+                IFacetBuilderHelper facetBuilderHelper = new TermsFacetBuilderHelper(isAnalyzed, nestedPath, filterPath, termsFacet);
+                classFacets.add(facetBuilderHelper);
+                if (classFilters.contains(facetBuilderHelper)) {
+                    classFilters.remove(facetBuilderHelper);
+                    LOGGER.warn("Field <" + esFieldName + "> already had a filter that will be replaced by the defined facet. Only a single one is allowed.");
+                }
+                classFilters.add(facetBuilderHelper);
             }
-            classFilters.add(facetBuilderHelper);
             return;
         }
         RangeFacet rangeFacet = indexable.getAnnotation(RangeFacet.class);

@@ -25,7 +25,7 @@ public @interface TermsFacet {
      * 
      * @return The property sub path if any.
      */
-    String path() default "";
+    String[] paths() default "";
 
     /**
      * The number of terms to return
