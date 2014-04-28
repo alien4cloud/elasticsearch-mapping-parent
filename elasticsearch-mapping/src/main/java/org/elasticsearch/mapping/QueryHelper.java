@@ -14,6 +14,8 @@ import org.elasticsearch.action.count.CountResponse;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.SearchType;
+import org.elasticsearch.common.collect.Lists;
+import org.elasticsearch.common.collect.Maps;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.index.query.BoolQueryBuilder;
@@ -49,7 +51,7 @@ public class QueryHelper {
      * @param indices The indices for which to create a search request.
      * @return a {@link SearchQueryHelperBuilder} instance.
      */
-    public SearchQueryHelperBuilder buildSearchQuery(String[] indices) {
+    public SearchQueryHelperBuilder buildSearchQuery(String... indices) {
         return buildSearchQuery(indices, null);
     }
 
@@ -82,7 +84,7 @@ public class QueryHelper {
      * @param indices The indices for which to create a count request.
      * @return a {@link CountQueryHelperBuilder} instance.
      */
-    public CountQueryHelperBuilder buildCountQuery(String[] indices) {
+    public CountQueryHelperBuilder buildCountQuery(String... indices) {
         return buildCountQuery(indices, null);
     }
 
@@ -109,24 +111,6 @@ public class QueryHelper {
         return new CountQueryHelperBuilder(indices, searchPrefix, suggestFieldPath);
     }
 
-    // /**
-    // * Prepare a search request.
-    // *
-    // * @param clazz The class that we want to query.
-    // * @param indices The indices for which to create a search request.
-    // * @param fetchContext The context to apply to the
-    // * @param searchQuery The search text if any, can be null if the request doesn't include a search text.
-    // * @param filters The set of filters for the request (field/value pairs).
-    // * @param from The start index of the search (for pagination).
-    // * @param size The maximum number of elements to return.
-    // * @param enableFacets Flag to know if we should include facets in the search request.
-    // * @return A {@link SearchResponse} object with the results.
-    // */
-    // public SearchResponse doSearch(Class<?> clazz, String[] indices, String fetchContext, String searchQuery, Map<String, String[]> filters, int from,
-    // int size, boolean enableFacets) {
-    // return buildSearchQuery(indices, searchQuery).types(clazz).fetchContext(fetchContext).filters(filters).facets(enableFacets).search(from, size);
-    // }
-
     @Value("#{elasticsearchConfig['elasticSearch.prefix_max_expansions']}")
     public void setMaxExpansions(final int maxExpansions) {
         this.maxExpansions = maxExpansions;
@@ -141,6 +125,7 @@ public class QueryHelper {
         protected final QueryBuilder queryBuilder;
         protected Class<?>[] classes;
         protected Map<String, String[]> filters;
+        protected Map<String, FilterValuesStrategy> filterStrategies = Maps.newHashMap();
 
         private QueryHelperBuilder(String[] indices, String searchQuery) {
             this.indices = indices;
@@ -187,6 +172,18 @@ public class QueryHelper {
         @SuppressWarnings("unchecked")
         public T filters(Map<String, String[]> filters) {
             this.filters = filters;
+            return (T) this;
+        }
+
+        /**
+         * Specifies filter strategies to use for the request.
+         * 
+         * @param filterStrategies Map of filter key, strategy for the filter. Note that filters default strategy if not specified is OR.
+         * @return this
+         */
+        @SuppressWarnings("unchecked")
+        public T filterStrategies(Map<String, FilterValuesStrategy> filterStrategies) {
+            this.filterStrategies = filterStrategies;
             return (T) this;
         }
 
@@ -397,7 +394,7 @@ public class QueryHelper {
             if (clazz == null) {
                 return;
             }
-            final List<FilterBuilder> esFilters = buildFilters(clazz.getName(), filters);
+            final List<FilterBuilder> esFilters = buildFilters(clazz.getName());
             FilterBuilder filter = null;
             if (esFilters.size() > 0) {
                 filter = getAndFitler(esFilters);
@@ -422,7 +419,7 @@ public class QueryHelper {
             }
         }
 
-        private List<FilterBuilder> buildFilters(String className, Map<String, String[]> filters) {
+        private List<FilterBuilder> buildFilters(String className) {
             List<FilterBuilder> filterBuilders = new ArrayList<FilterBuilder>();
 
             if (filters == null) {
@@ -444,9 +441,9 @@ public class QueryHelper {
                             nestedFilters = new ArrayList<FilterBuilder>(3);
                             nestedFilterBuilders.put(filterBuilderHelper.getNestedPath(), nestedFilters);
                         }
-                        nestedFilters.add(filterBuilderHelper.buildFilter(esFieldName, filters.get(esFieldName)));
+                        nestedFilters.addAll(buildFilters(filterBuilderHelper, esFieldName, filters.get(esFieldName), filterStrategies.get(esFieldName)));
                     } else {
-                        filterBuilders.add(filterBuilderHelper.buildFilter(esFieldName, filters.get(esFieldName)));
+                        filterBuilders.addAll(buildFilters(filterBuilderHelper, esFieldName, filters.get(esFieldName), filterStrategies.get(esFieldName)));
                     }
                 }
             }
@@ -456,6 +453,17 @@ public class QueryHelper {
             }
 
             return filterBuilders;
+        }
+
+        private List<FilterBuilder> buildFilters(IFilterBuilderHelper filterBuilderHelper, String esFieldName, String[] values, FilterValuesStrategy strategy) {
+            if (strategy == null || FilterValuesStrategy.OR.equals(strategy)) {
+                return Lists.newArrayList(filterBuilderHelper.buildFilter(esFieldName, values));
+            }
+            List<FilterBuilder> valuesFilters = Lists.newArrayList();
+            for (String value : values) {
+                valuesFilters.add(filterBuilderHelper.buildFilter(esFieldName, value));
+            }
+            return valuesFilters;
         }
 
         private FilterBuilder getAndFitler(List<FilterBuilder> filters) {

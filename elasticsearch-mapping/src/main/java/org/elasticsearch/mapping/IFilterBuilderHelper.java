@@ -33,7 +33,7 @@ public interface IFilterBuilderHelper {
      * @param value The value as String.
      * @return A filter builder.
      */
-    FilterBuilder buildFilter(String key, String[] value);
+    FilterBuilder buildFilter(String key, String... value);
 
     /**
      * Build a query builder.
