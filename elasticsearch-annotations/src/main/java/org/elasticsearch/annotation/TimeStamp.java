@@ -8,7 +8,7 @@ import java.lang.annotation.Target;
 import org.elasticsearch.mapping.IndexType;
 
 /**
- * Id field for elastic search.
+ * Timestamp field for elastic search.
  * 
  * @author luc boutier
  */
@@ -18,6 +18,6 @@ public @interface TimeStamp {
 	IndexType index() default IndexType.not_analyzed;
 
 	boolean store() default false;
-
-	String format();
+	
+	String format() default "";
 }

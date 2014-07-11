@@ -27,6 +27,7 @@ import org.elasticsearch.annotation.NumberField;
 import org.elasticsearch.annotation.Routing;
 import org.elasticsearch.annotation.SearchAnalyser;
 import org.elasticsearch.annotation.StringField;
+import org.elasticsearch.annotation.TimeStamp;
 import org.elasticsearch.annotation.query.FetchContext;
 import org.elasticsearch.annotation.query.RangeFacet;
 import org.elasticsearch.annotation.query.RangeFilter;
@@ -98,6 +99,8 @@ public class FieldsMappingBuilder {
             processIdAnnotation(classDefinitionMap, esFieldName, indexable);
             processRoutingAnnotation(classDefinitionMap, esFieldName, indexable);
             processBoostAnnotation(classDefinitionMap, esFieldName, indexable);
+            // Timestamp field annotation
+            processTimeStampAnnotation(classDefinitionMap, esFieldName, indexable);
         }
 
         processFetchContextAnnotation(fetchContexts, esFieldName, indexable);
@@ -173,6 +176,27 @@ public class FieldsMappingBuilder {
                 boostDef.put("name", esFieldName);
                 boostDef.put("null_value", boost.nullValue());
                 classDefinitionMap.put("_boost", boostDef);
+            }
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private void processTimeStampAnnotation(Map<String, Object> classDefinitionMap, String esFieldName, Indexable indexable) {
+        TimeStamp timeStamp = indexable.getAnnotation(TimeStamp.class);
+        if (timeStamp != null) {
+            if (classDefinitionMap.containsKey("_timestamp")) {
+                LOGGER.warn("A TimeStamp annotation is defined on field <" + esFieldName + "> of <" + indexable.getDeclaringClassName()
+                        + "> but a boost has already be defined for <" + ((Map<String, Object>) classDefinitionMap.get("_timestamp")).get("name") + ">");
+            } else {
+                Map<String, Object> timeStampDefinition = new HashMap<String, Object>();
+                timeStampDefinition.put("enabled", true);
+                timeStampDefinition.put("path", indexable.getName());
+
+                if (!timeStamp.format().isEmpty()) {
+                    timeStampDefinition.put("format", timeStamp.format());
+                }
+
+                classDefinitionMap.put("_timestamp", timeStampDefinition);
             }
         }
     }

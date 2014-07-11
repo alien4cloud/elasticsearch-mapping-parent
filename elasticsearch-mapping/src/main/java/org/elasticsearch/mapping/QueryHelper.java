@@ -25,7 +25,9 @@ import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.index.query.functionscore.ScoreFunctionBuilders;
 import org.elasticsearch.search.facet.FacetBuilder;
+import org.elasticsearch.search.sort.SortBuilder;
 import org.elasticsearch.search.sort.SortBuilders;
+import org.elasticsearch.search.sort.SortOrder;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -292,6 +294,8 @@ public class QueryHelper {
         private String fetchContext;
         private boolean facets = false;
         private String functionScore;
+        private String fieldSort;
+        private boolean fieldSortDesc;
 
         private SearchQueryHelperBuilder(String[] indices, String searchQuery) {
             super(indices, searchQuery);
@@ -335,6 +339,18 @@ public class QueryHelper {
         }
 
         /**
+         * Allows to define a sort field.
+         * 
+         * @param functionScore The script for the function score.
+         * @return this
+         */
+        public SearchQueryHelperBuilder fieldSort(String fieldName, boolean desc) {
+            this.fieldSort = fieldName;
+            this.fieldSortDesc = desc;
+            return this;
+        }
+
+        /**
          * Execute a search query using the defined query.
          * 
          * @param from The start index of the search (for pagination).
@@ -356,8 +372,20 @@ public class QueryHelper {
                 }
             }
 
+            if (fieldSort != null) {
+                SortBuilder sortBuilder = SortBuilders.fieldSort(fieldSort);
+                if (fieldSortDesc) {
+                    sortBuilder.order(SortOrder.DESC);
+                } else {
+                    sortBuilder.order(SortOrder.ASC);
+                }
+                searchRequestBuilder.addSort(sortBuilder);
+            }
+
             if (prefixField == null) {
-                searchRequestBuilder.addSort(SortBuilders.scoreSort());
+                if (fieldSort == null) {
+                    searchRequestBuilder.addSort(SortBuilders.scoreSort());
+                }
             } else {
                 searchRequestBuilder.addSort(SortBuilders.fieldSort(prefixField));
             }
