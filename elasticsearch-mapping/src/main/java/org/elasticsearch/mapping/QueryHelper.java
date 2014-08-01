@@ -296,6 +296,7 @@ public class QueryHelper {
         private String functionScore;
         private String fieldSort;
         private boolean fieldSortDesc;
+        private FilterBuilder customFilter;
 
         private SearchQueryHelperBuilder(String[] indices, String searchQuery) {
             super(indices, searchQuery);
@@ -319,7 +320,7 @@ public class QueryHelper {
         /**
          * Enable or disable facets computation for the search request.
          * 
-         * @param fetchContext The fetch context to use for the query.
+         * @param facets Activate facets on the search
          * @return this
          */
         public SearchQueryHelperBuilder facets(boolean facets) {
@@ -341,12 +342,24 @@ public class QueryHelper {
         /**
          * Allows to define a sort field.
          * 
-         * @param functionScore The script for the function score.
+         * @param fieldName Name of the field to sort.
+         * @param desc Descending or Ascending
          * @return this
          */
         public SearchQueryHelperBuilder fieldSort(String fieldName, boolean desc) {
             this.fieldSort = fieldName;
             this.fieldSortDesc = desc;
+            return this;
+        }
+
+        /**
+         * Add a custom filter builder to the search query
+         * 
+         * @param filterBuilder the custom filter builder for the search query
+         * @return this
+         */
+        public SearchQueryHelperBuilder customFilter(FilterBuilder filterBuilder) {
+            this.customFilter = filterBuilder;
             return this;
         }
 
@@ -368,10 +381,9 @@ public class QueryHelper {
             if (classes != null && classes.length > 0) {
                 addFetchContext(searchRequestBuilder);
                 for (Class<?> clazz : classes) {
-                    addFilters(searchRequestBuilder, clazz);
+                    addFilters(searchRequestBuilder, customFilter, clazz);
                 }
             }
-
             if (fieldSort != null) {
                 SortBuilder sortBuilder = SortBuilders.fieldSort(fieldSort);
                 if (fieldSortDesc) {
@@ -418,14 +430,17 @@ public class QueryHelper {
             searchRequestBuilder.setFetchSource(inc, exc);
         }
 
-        private void addFilters(SearchRequestBuilder searchRequestBuilder, Class<?> clazz) {
+        private void addFilters(SearchRequestBuilder searchRequestBuilder, FilterBuilder customFilter, Class<?> clazz) {
             if (clazz == null) {
                 return;
             }
             final List<FilterBuilder> esFilters = buildFilters(clazz.getName());
+            if (customFilter != null) {
+                esFilters.add(customFilter);
+            }
             FilterBuilder filter = null;
             if (esFilters.size() > 0) {
-                filter = getAndFitler(esFilters);
+                filter = getAndFilter(esFilters);
                 searchRequestBuilder.setPostFilter(filter);
             }
             if (facets) {
@@ -477,7 +492,7 @@ public class QueryHelper {
             }
 
             for (Entry<String, List<FilterBuilder>> nestedFilters : nestedFilterBuilders.entrySet()) {
-                filterBuilders.add(FilterBuilders.nestedFilter(nestedFilters.getKey(), getAndFitler(nestedFilters.getValue())));
+                filterBuilders.add(FilterBuilders.nestedFilter(nestedFilters.getKey(), getAndFilter(nestedFilters.getValue())));
             }
 
             return filterBuilders;
@@ -494,7 +509,7 @@ public class QueryHelper {
             return valuesFilters;
         }
 
-        private FilterBuilder getAndFitler(List<FilterBuilder> filters) {
+        private FilterBuilder getAndFilter(List<FilterBuilder> filters) {
             if (filters.size() == 1) {
                 return filters.get(0);
             }
@@ -506,7 +521,7 @@ public class QueryHelper {
          * 
          * @param className The name of the class for which to create facets.
          * @param filters The set of facets to exclude from the facet creation.
-         * @return a {@link List} of {@link AbstractFacetBuilder facet builders}.
+         * @return a {@link List} of {@link FacetBuilder facet builders}.
          */
         private List<FacetBuilder> buildFacets(String className, Set<String> filters) {
             final List<FacetBuilder> facetBuilders = new ArrayList<FacetBuilder>();
