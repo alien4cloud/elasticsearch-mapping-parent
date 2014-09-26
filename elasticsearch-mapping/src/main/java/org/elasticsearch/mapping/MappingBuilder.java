@@ -177,6 +177,10 @@ public class MappingBuilder {
         classDefinitionMap.put("_source", MapUtil.getMap("enabled", esObject.source()));
         classDefinitionMap.put("_type", MapUtil.getMap(new String[] { "store", "index" }, new Object[] { esObject.store(), esObject.index() }));
 
+        if(esObject.ttl()) {
+        	classDefinitionMap.put("_ttl", MapUtil.getMap("enabled", true));
+        }
+        
         this.fieldsMappingBuilder.parseFieldMappings(clazz, classDefinitionMap, facetFields, filteredFields, fetchContexts, pathPrefix);
 
         ObjectMapper mapper = new ObjectMapper();
