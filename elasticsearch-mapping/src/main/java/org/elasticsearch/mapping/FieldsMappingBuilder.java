@@ -7,6 +7,7 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -111,10 +112,10 @@ public class FieldsMappingBuilder {
         if (ClassUtils.isPrimitiveOrWrapper(indexable.getType()) || indexable.getType() == String.class) {
             processStringOrPrimitive(clazz, propertiesDefinitionMap, pathPrefix, indexable);
         } else {
+            Class<?> arrayType = indexable.getComponentType();
             // mapping of a complex field
-            if (indexable.getType().isArray()) {
+            if (arrayType != null) {
                 // process the array type.
-                Class<?> arrayType = indexable.getType().getComponentType();
                 if (ClassUtils.isPrimitiveOrWrapper(arrayType) || arrayType == String.class) {
                     processStringOrPrimitive(clazz, propertiesDefinitionMap, pathPrefix, indexable);
                 } else {
