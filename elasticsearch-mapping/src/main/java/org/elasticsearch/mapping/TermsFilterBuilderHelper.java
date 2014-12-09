@@ -1,9 +1,6 @@
 package org.elasticsearch.mapping;
 
-import org.elasticsearch.index.query.FilterBuilder;
-import org.elasticsearch.index.query.FilterBuilders;
-import org.elasticsearch.index.query.QueryBuilder;
-import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.index.query.*;
 
 /**
  * Build a term filter.
@@ -26,10 +23,10 @@ public class TermsFilterBuilderHelper extends AbstractFilterBuilderHelper {
     }
 
     @Override
-    public FilterBuilder buildFilter(final String key, final String[] values) {
+    public FilterBuilder buildFilter(final String key, final String... values) {
         preProcessValues(values);
         if (values.length == 1) {
-            if(values[0] == null) {
+            if (values[0] == null) {
                 return FilterBuilders.missingFilter(key).existence(true).nullValue(true);
             }
             return FilterBuilders.termFilter(key, values[0]);
