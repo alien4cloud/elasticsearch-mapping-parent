@@ -35,8 +35,7 @@ public abstract class AbstractFilterBuilderHelper implements IFilterBuilderHelpe
     }
 
     public String getEsFieldName() {
-        return nestedPath + "." + filterPath;
-        // return nestedPath == null ? filterPath : nestedPath + "." + filterPath;
+        return nestedPath == null ? filterPath : nestedPath + "." + filterPath;
     }
 
     @Override
