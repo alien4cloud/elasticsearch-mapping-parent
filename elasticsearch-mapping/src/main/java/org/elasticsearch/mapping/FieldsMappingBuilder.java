@@ -83,16 +83,14 @@ public class FieldsMappingBuilder {
                 // process the array type.
                 if (ClassUtils.isPrimitiveOrWrapper(arrayType) || arrayType == String.class) {
                     processStringOrPrimitive(clazz, propertiesDefinitionMap, pathPrefix, indexable);
-                } else {
-                    if (arrayType.isEnum()) {
-                        // if this is an enum and there is a String
-                        StringField annotation = indexable.getAnnotation(StringField.class);
-                        if (annotation != null) {
-                            processStringOrPrimitive(clazz, propertiesDefinitionMap, pathPrefix, indexable);
-                        }
-                    } else {
-                        processComplexType(clazz, propertiesDefinitionMap, pathPrefix, indexable, filteredFields, facetFields);
+                } else if (arrayType.isEnum()) {
+                    // if this is an enum and there is a String
+                    StringField annotation = indexable.getAnnotation(StringField.class);
+                    if (annotation != null) {
+                        processStringOrPrimitive(clazz, propertiesDefinitionMap, pathPrefix, indexable);
                     }
+                } else {
+                    processComplexType(clazz, propertiesDefinitionMap, pathPrefix, indexable, filteredFields, facetFields);
                 }
             } else {
                 // process the type
@@ -250,16 +248,15 @@ public class FieldsMappingBuilder {
     }
 
     private String getFilterPath(String path, String nestedPath, String esFieldName) {
-        return path.isEmpty() ? esFieldName : esFieldName + "." + path;
+        //return path.isEmpty() ? esFieldName : esFieldName + "." + path;
+        return esFieldName + "." + path;
     }
 
     private boolean isAnalyzed(Indexable indexable) {
         boolean isAnalysed = true;
         StringField stringFieldAnnotation = indexable.getAnnotation(StringField.class);
-        if (stringFieldAnnotation != null) {
-            if (!IndexType.analyzed.equals(stringFieldAnnotation.indexType())) {
-                isAnalysed = false;
-            }
+        if (stringFieldAnnotation != null && !IndexType.analyzed.equals(stringFieldAnnotation.indexType())) {
+            isAnalysed = false;
         }
         return isAnalysed;
     }
@@ -334,10 +331,9 @@ public class FieldsMappingBuilder {
 
             if (propertyDescriptor == null || propertyDescriptor.getReadMethod() == null || propertyDescriptor.getWriteMethod() == null) {
                 LOGGER.debug("Field <" + field.getName() + "> of class <" + clazz.getName() + "> has no proper setter/getter and won't be persisted.");
-                continue;
+            } else {
+                fdMap.put(pdName, field);
             }
-
-            fdMap.put(pdName, field);
         }
         Set<String> allIndexablesName = new HashSet<String>();
         allIndexablesName.addAll(pdMap.keySet());
