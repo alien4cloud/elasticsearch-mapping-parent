@@ -1,6 +1,10 @@
 package org.elasticsearch.mapping.model;
 
-import org.elasticsearch.annotation.*;
+import org.elasticsearch.annotation.ESObject;
+import org.elasticsearch.annotation.Id;
+import org.elasticsearch.annotation.NestedObject;
+import org.elasticsearch.annotation.StringField;
+import org.elasticsearch.annotation.query.TermFilter;
 import org.elasticsearch.mapping.IndexType;
 
 /**
@@ -17,7 +21,6 @@ public class Person {
     private String lastname;
 
     @NestedObject
-    // @TermFilter(paths = "city")
     private Address address;
 
     public String getId() {

@@ -202,7 +202,7 @@ public class FieldsMappingBuilder {
                         esFieldName = esFieldName.substring(nestedIndicator + 1, esFieldName.length());
                     }
                 }
-                String filterPath = getFilterPath(path, nestedPath, esFieldName);
+                String filterPath = getFilterPath(path, esFieldName);
 
                 classFilters.add(new TermsFilterBuilderHelper(isAnalyzed, nestedPath, filterPath));
             }
@@ -223,7 +223,7 @@ public class FieldsMappingBuilder {
                 path = path.trim();
                 boolean isAnalyzed = isAnalyzed(indexable);
                 String nestedPath = indexable.getAnnotation(NestedObject.class) == null ? null : esFieldName;
-                String filterPath = getFilterPath(path, nestedPath, esFieldName);
+                String filterPath = getFilterPath(path, esFieldName);
 
                 IFacetBuilderHelper facetBuilderHelper = new TermsFacetBuilderHelper(isAnalyzed, nestedPath, filterPath, termsFacet);
                 classFacets.add(facetBuilderHelper);
@@ -247,9 +247,8 @@ public class FieldsMappingBuilder {
         }
     }
 
-    private String getFilterPath(String path, String nestedPath, String esFieldName) {
-        //return path.isEmpty() ? esFieldName : esFieldName + "." + path;
-        return esFieldName + "." + path;
+    private String getFilterPath(String path, String esFieldName) {
+        return path.isEmpty() ? esFieldName : esFieldName + "." + path;
     }
 
     private boolean isAnalyzed(Indexable indexable) {

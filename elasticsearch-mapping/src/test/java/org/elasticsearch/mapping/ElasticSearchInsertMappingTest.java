@@ -99,6 +99,7 @@ public class ElasticSearchInsertMappingTest {
             CreateIndexRequestBuilder createIndexRequestBuilder = esClient.getClient().admin().indices().prepareCreate(indexName);
 
             for (Class<?> clazz : classes) {
+                System.out.println(mappingBuilder.getMapping(clazz));
                 createIndexRequestBuilder.addMapping(clazz.getSimpleName().toLowerCase(), mappingBuilder.getMapping(clazz));
             }
             final CreateIndexResponse createResponse = createIndexRequestBuilder.execute().actionGet();
