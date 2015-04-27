@@ -31,7 +31,7 @@ public class RangeFilterBuilderHelper extends AbstractFilterBuilderHelper {
     /**
      * Initialize a {@link RangeFilterBuilderHelper} from the informations that contains it's definition.
      * 
-     * @param isNested If the field is part of a nested object.
+     * @param nestedPath If the field is part of a nested object.
      * @param esFieldName The name of the field on which to apply the filter.
      * @param ranges The range definition.
      */
@@ -53,13 +53,12 @@ public class RangeFilterBuilderHelper extends AbstractFilterBuilderHelper {
         }
         if (rangeValues.length == 1) {
             return buildSingleRangeFilter(key, rangeValues[0]);
-        } else {
-            FilterBuilder[] builders = new FilterBuilder[rangeValues.length];
-            for (int i = 0; i < rangeValues.length; i++) {
-                builders[i] = buildSingleRangeFilter(key, rangeValues[i]);
-            }
-            return FilterBuilders.orFilter(builders);
         }
+        FilterBuilder[] builders = new FilterBuilder[rangeValues.length];
+        for (int i = 0; i < rangeValues.length; i++) {
+            builders[i] = buildSingleRangeFilter(key, rangeValues[i]);
+        }
+        return FilterBuilders.orFilter(builders);
     }
 
     private FilterBuilder buildSingleRangeFilter(String key, String value) {
@@ -70,12 +69,10 @@ public class RangeFilterBuilderHelper extends AbstractFilterBuilderHelper {
         RangeFilterBuilder filterBuilder = FilterBuilders.rangeFilter(key);
         if (value.length() == 2) {
             filterBuilder.from(Double.valueOf(values[0]).doubleValue()).to(Double.valueOf(values[1]));
+        } else if (value.startsWith(values[0])) {
+            filterBuilder.gte(Double.valueOf(values[0]).doubleValue());
         } else {
-            if (value.startsWith(values[0])) {
-                filterBuilder.gte(Double.valueOf(values[0]).doubleValue());
-            } else {
-                filterBuilder.lt(Double.valueOf(values[0]).doubleValue());
-            }
+            filterBuilder.lt(Double.valueOf(values[0]).doubleValue());
         }
         return filterBuilder;
     }
@@ -105,12 +102,10 @@ public class RangeFilterBuilderHelper extends AbstractFilterBuilderHelper {
         RangeQueryBuilder queryBuilder = QueryBuilders.rangeQuery(key);
         if (value.length() == 2) {
             queryBuilder.from(Double.valueOf(values[0]).doubleValue()).to(Double.valueOf(values[1]));
+        } else if (value.startsWith(values[0])) {
+            queryBuilder.gte(Double.valueOf(values[0]).doubleValue());
         } else {
-            if (value.startsWith(values[0])) {
-                queryBuilder.gte(Double.valueOf(values[0]).doubleValue());
-            } else {
-                queryBuilder.lt(Double.valueOf(values[0]).doubleValue());
-            }
+            queryBuilder.lt(Double.valueOf(values[0]).doubleValue());
         }
         return queryBuilder;
     }

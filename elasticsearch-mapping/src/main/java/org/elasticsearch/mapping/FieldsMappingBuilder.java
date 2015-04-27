@@ -6,47 +6,13 @@ import java.beans.PropertyDescriptor;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
-import org.elasticsearch.annotation.Analyser;
-import org.elasticsearch.annotation.BooleanField;
-import org.elasticsearch.annotation.Boost;
-import org.elasticsearch.annotation.DateField;
-import org.elasticsearch.annotation.DateFormat;
-import org.elasticsearch.annotation.Id;
-import org.elasticsearch.annotation.IndexAnalyser;
-import org.elasticsearch.annotation.IndexName;
-import org.elasticsearch.annotation.NestedObject;
-import org.elasticsearch.annotation.NullValue;
-import org.elasticsearch.annotation.NumberField;
-import org.elasticsearch.annotation.Routing;
-import org.elasticsearch.annotation.SearchAnalyser;
-import org.elasticsearch.annotation.StringField;
-import org.elasticsearch.annotation.TimeStamp;
-import org.elasticsearch.annotation.query.FetchContext;
-import org.elasticsearch.annotation.query.RangeFacet;
-import org.elasticsearch.annotation.query.RangeFilter;
-import org.elasticsearch.annotation.query.TermFilter;
-import org.elasticsearch.annotation.query.TermsFacet;
+import org.elasticsearch.annotation.*;
+import org.elasticsearch.annotation.query.*;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.mapping.parser.AnalyserAnnotationParser;
-import org.elasticsearch.mapping.parser.BooleanFieldAnnotationParser;
-import org.elasticsearch.mapping.parser.DateFieldAnnotationParser;
-import org.elasticsearch.mapping.parser.DateFormatAnnotationParser;
-import org.elasticsearch.mapping.parser.IPropertyAnnotationParser;
-import org.elasticsearch.mapping.parser.IndexAnalyserAnnotationParser;
-import org.elasticsearch.mapping.parser.IndexNameAnnotationParser;
-import org.elasticsearch.mapping.parser.NestedObjectFieldAnnotationParser;
-import org.elasticsearch.mapping.parser.NullValueAnnotationParser;
-import org.elasticsearch.mapping.parser.NumberFieldAnnotationParser;
-import org.elasticsearch.mapping.parser.SearchAnalyserAnnotationParser;
-import org.elasticsearch.mapping.parser.StringFieldAnnotationParser;
+import org.elasticsearch.mapping.parser.*;
 import org.elasticsearch.util.MapUtil;
 import org.springframework.util.ClassUtils;
 
@@ -111,26 +77,24 @@ public class FieldsMappingBuilder {
         if (ClassUtils.isPrimitiveOrWrapper(indexable.getType()) || indexable.getType() == String.class) {
             processStringOrPrimitive(clazz, propertiesDefinitionMap, pathPrefix, indexable);
         } else {
+            Class<?> arrayType = indexable.getComponentType();
             // mapping of a complex field
-            if (indexable.getType().isArray()) {
+            if (arrayType != null) {
                 // process the array type.
-                Class<?> arrayType = indexable.getType().getComponentType();
                 if (ClassUtils.isPrimitiveOrWrapper(arrayType) || arrayType == String.class) {
                     processStringOrPrimitive(clazz, propertiesDefinitionMap, pathPrefix, indexable);
-                } else {
-                    if (arrayType.isEnum()) {
-                        // if this is an enum and there is a String
-                        StringField annotation = indexable.getAnnotation(StringField.class);
-                        if (annotation != null) {
-                            processStringOrPrimitive(clazz, propertiesDefinitionMap, pathPrefix, indexable);
-                        }
-                    } else {
-                        processComplexType(clazz, propertiesDefinitionMap, pathPrefix, indexable);
+                } else if (arrayType.isEnum()) {
+                    // if this is an enum and there is a String
+                    StringField annotation = indexable.getAnnotation(StringField.class);
+                    if (annotation != null) {
+                        processStringOrPrimitive(clazz, propertiesDefinitionMap, pathPrefix, indexable);
                     }
+                } else {
+                    processComplexType(clazz, propertiesDefinitionMap, pathPrefix, indexable, filteredFields, facetFields);
                 }
             } else {
                 // process the type
-                processComplexType(clazz, propertiesDefinitionMap, pathPrefix, indexable);
+                processComplexType(clazz, propertiesDefinitionMap, pathPrefix, indexable, filteredFields, facetFields);
             }
         }
     }
@@ -231,10 +195,14 @@ public class FieldsMappingBuilder {
                 path = path.trim();
                 boolean isAnalyzed = isAnalyzed(indexable);
                 String nestedPath = indexable.getAnnotation(NestedObject.class) == null ? null : esFieldName;
-                String filterPath = getFilterPath(path, nestedPath, esFieldName, indexable);
-                if (filterPath == null) {
-                    return;
+                if (nestedPath == null) {
+                    int nestedIndicator = esFieldName.lastIndexOf(".");
+                    if (nestedIndicator > 0) {
+                        nestedPath = esFieldName.substring(0, nestedIndicator);
+                        esFieldName = esFieldName.substring(nestedIndicator + 1, esFieldName.length());
+                    }
                 }
+                String filterPath = getFilterPath(path, esFieldName);
 
                 classFilters.add(new TermsFilterBuilderHelper(isAnalyzed, nestedPath, filterPath));
             }
@@ -255,10 +223,7 @@ public class FieldsMappingBuilder {
                 path = path.trim();
                 boolean isAnalyzed = isAnalyzed(indexable);
                 String nestedPath = indexable.getAnnotation(NestedObject.class) == null ? null : esFieldName;
-                String filterPath = getFilterPath(path, nestedPath, esFieldName, indexable);
-                if (filterPath == null) {
-                    return;
-                }
+                String filterPath = getFilterPath(path, esFieldName);
 
                 IFacetBuilderHelper facetBuilderHelper = new TermsFacetBuilderHelper(isAnalyzed, nestedPath, filterPath, termsFacet);
                 classFacets.add(facetBuilderHelper);
@@ -282,27 +247,15 @@ public class FieldsMappingBuilder {
         }
     }
 
-    private String getFilterPath(String path, String nestedPath, String esFieldName, Indexable indexable) {
-        String filterPath;
-        if (nestedPath == null) {
-            filterPath = path.isEmpty() ? esFieldName : esFieldName + "." + path;
-        } else {
-            if (path.isEmpty()) {
-                LOGGER.warn("Unable to map filter for field <" + esFieldName + "> Nested objects requires to specify a path on the filter.");
-                return null;
-            }
-            filterPath = path;
-        }
-        return filterPath;
+    private String getFilterPath(String path, String esFieldName) {
+        return path.isEmpty() ? esFieldName : esFieldName + "." + path;
     }
 
     private boolean isAnalyzed(Indexable indexable) {
         boolean isAnalysed = true;
         StringField stringFieldAnnotation = indexable.getAnnotation(StringField.class);
-        if (stringFieldAnnotation != null) {
-            if (!IndexType.analyzed.equals(stringFieldAnnotation.indexType())) {
-                isAnalysed = false;
-            }
+        if (stringFieldAnnotation != null && !IndexType.analyzed.equals(stringFieldAnnotation.indexType())) {
+            isAnalysed = false;
         }
         return isAnalysed;
     }
@@ -329,10 +282,9 @@ public class FieldsMappingBuilder {
         // TODO binary type mapping
     }
 
-    private void processComplexType(Class<?> clazz, Map<String, Object> propertiesDefinitionMap, String pathPrefix, Indexable indexable) {
-        // TODO check annotations
-        NestedObjectFieldAnnotationParser parser = new NestedObjectFieldAnnotationParser(this);
-        // process nested object
+    private void processComplexType(Class<?> clazz, Map<String, Object> propertiesDefinitionMap, String pathPrefix, Indexable indexable,
+            List<IFilterBuilderHelper> filters, List<IFacetBuilderHelper> facets) {
+        NestedObjectFieldAnnotationParser parser = new NestedObjectFieldAnnotationParser(this, filters, facets);
         processFieldAnnotation(NestedObject.class, parser, propertiesDefinitionMap, pathPrefix, indexable);
 
     }
@@ -378,10 +330,9 @@ public class FieldsMappingBuilder {
 
             if (propertyDescriptor == null || propertyDescriptor.getReadMethod() == null || propertyDescriptor.getWriteMethod() == null) {
                 LOGGER.debug("Field <" + field.getName() + "> of class <" + clazz.getName() + "> has no proper setter/getter and won't be persisted.");
-                continue;
+            } else {
+                fdMap.put(pdName, field);
             }
-
-            fdMap.put(pdName, field);
         }
         Set<String> allIndexablesName = new HashSet<String>();
         allIndexablesName.addAll(pdMap.keySet());

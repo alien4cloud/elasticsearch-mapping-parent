@@ -3,6 +3,9 @@ package org.elasticsearch.mapping;
 import java.beans.PropertyDescriptor;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
+import java.util.Collection;
 
 public class Indexable {
 
@@ -47,6 +50,31 @@ public class Indexable {
             return field.getType();
         } else {
             return propertyDescriptor.getPropertyType();
+        }
+    }
+
+    public Class<?> getComponentType() {
+        Class<?> type = getType();
+        if (type.isArray()) {
+            return type.getComponentType();
+        } else if (Collection.class.isAssignableFrom(type)) {
+            ParameterizedType pt = null;
+            if (field != null && field.getGenericType() instanceof ParameterizedType) {
+                pt = (ParameterizedType) field.getGenericType();
+            } else if (propertyDescriptor != null && propertyDescriptor.getReadMethod().getGenericReturnType() instanceof ParameterizedType) {
+                pt = (ParameterizedType) propertyDescriptor.getReadMethod().getGenericReturnType();
+            } else {
+                return null;
+            }
+            Type[] types = pt.getActualTypeArguments();
+            if (types.length > 0) {
+                Class<?> valueClass = (Class<?>) types[0];
+                return valueClass;
+            } else {
+                return null;
+            }
+        } else {
+            return null;
         }
     }
 

@@ -29,8 +29,8 @@ public final class MapUtil {
     /**
      * Create a map that contains a entries based on given parameters.
      * 
-     * @param key An array of the keys of the entries to add to the map.
-     * @param value An array of the values for every key provided.
+     * @param keys An array of the keys of the entries to add to the map.
+     * @param values An array of the values for every key provided.
      * @return A map that is already filled with entries from the given key and values arrays.
      */
     public static Map<String, Object> getMap(String[] keys, Object[] values) {

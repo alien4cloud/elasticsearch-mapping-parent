@@ -1,16 +1,21 @@
 package org.elasticsearch.mapping;
 
+import java.util.List;
+
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequestBuilder;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.client.Client;
+import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.node.NodeBuilder;
+import org.elasticsearch.util.AddressParserUtil;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -26,22 +31,39 @@ public class ElasticSearchClient {
 
     private Node node;
     private boolean isClient;
+    private boolean isTransportClient;
+    private List<InetSocketTransportAddress> adresses;
     private boolean isLocal;
     private String clusterName;
     private boolean resetData = false;
+    private Client client;
 
     @PostConstruct
     public void initialize() {
-        this.node = NodeBuilder.nodeBuilder().client(this.isClient).clusterName(this.clusterName).local(this.isLocal).node();
-
-        if (this.resetData) { // removes all indices from elastic search. For Integration testing only.
-            // this.node.client().admin().indices().prepareDelete().execute().actionGet();
+        if (this.isClient && this.isTransportClient) {
+            // when these both option are set, we use a transport client
+            TransportClient transportClient = new TransportClient();
+            for (InetSocketTransportAddress add : adresses) {
+                transportClient.addTransportAddress(add);
+            }
+            this.client = transportClient;
+        } else {
+            // when only 'client' option is set, a node without data is initialized and joins the cluster
+            this.node = NodeBuilder.nodeBuilder().client(this.isClient).clusterName(this.clusterName).local(this.isLocal).node();
+            this.client = node.client();
         }
+
+//        if (this.resetData) { // removes all indices from elastic search. For Integration testing only.
+            // this.node.client().admin().indices().prepareDelete().execute().actionGet();
+//        }
         LOGGER.info("Initialized ElasticSearch client for cluster <" + this.clusterName + ">");
     }
 
     @PreDestroy
     public void close() {
+        if (client != null) {
+            client.close();
+        }
         if (node != null) {
             node.close();
         }
@@ -54,7 +76,7 @@ public class ElasticSearchClient {
      * @return The elastic search client.
      */
     public Client getClient() {
-        return this.node.client();
+        return this.client;
     }
 
     /**
@@ -64,7 +86,7 @@ public class ElasticSearchClient {
      * @return A {@link ClusterHealthResponse} that contains the cluster health after waiting maximum 5 minutes for green status.
      */
     public ClusterHealthResponse waitForGreenStatus(String... indices) {
-        ClusterHealthRequestBuilder builder = new ClusterHealthRequestBuilder(node.client().admin().cluster());
+        ClusterHealthRequestBuilder builder = new ClusterHealthRequestBuilder(this.client.admin().cluster());
         builder.setIndices(indices);
         builder.setWaitForGreenStatus();
         builder.setTimeout(TimeValue.timeValueSeconds(30));
@@ -81,11 +103,6 @@ public class ElasticSearchClient {
         return response;
     }
 
-    @PreDestroy
-    public void tearDown() {
-        this.node.close();
-    }
-
     @Value("#{elasticsearchConfig['elasticSearch.clusterName']}")
     public void setClusterName(final String clusterName) {
         this.clusterName = clusterName;
@@ -99,6 +116,16 @@ public class ElasticSearchClient {
     @Value("#{elasticsearchConfig['elasticSearch.client']}")
     public void setClient(final boolean isClient) {
         this.isClient = isClient;
+    }
+
+    @Value("#{elasticsearchConfig['elasticSearch.transportClient']}")
+    public void setTransportClient(final String isTransportClient) {
+        this.isTransportClient = Boolean.parseBoolean(isTransportClient);
+    }
+
+    @Value("#{elasticsearchConfig['elasticSearch.hosts']}")
+    public void setHosts(final String hosts) {
+        this.adresses = AddressParserUtil.parseHostCsvList(hosts);
     }
 
     @Value("#{elasticsearchConfig['elasticSearch.resetData']}")

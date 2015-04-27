@@ -5,25 +5,22 @@ import java.util.List;
 import java.util.Map;
 
 import org.elasticsearch.annotation.NestedObject;
-import org.elasticsearch.common.collect.Lists;
 import org.elasticsearch.common.collect.Maps;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.mapping.FieldsMappingBuilder;
-import org.elasticsearch.mapping.IFacetBuilderHelper;
-import org.elasticsearch.mapping.IFilterBuilderHelper;
-import org.elasticsearch.mapping.Indexable;
-import org.elasticsearch.mapping.MappingBuilder;
-import org.elasticsearch.mapping.MappingException;
-import org.elasticsearch.mapping.SourceFetchContext;
+import org.elasticsearch.mapping.*;
 
 public class NestedObjectFieldAnnotationParser implements IPropertyAnnotationParser<NestedObject> {
     private static final ESLogger LOGGER = Loggers.getLogger(MappingBuilder.class);
 
-    private FieldsMappingBuilder fieldsMappingBuilder;
+    private final FieldsMappingBuilder fieldsMappingBuilder;
+    private final List<IFilterBuilderHelper> filters;
+    private final List<IFacetBuilderHelper> facets;
 
-    public NestedObjectFieldAnnotationParser(FieldsMappingBuilder fieldsMappingBuilder) {
+    public NestedObjectFieldAnnotationParser(FieldsMappingBuilder fieldsMappingBuilder, List<IFilterBuilderHelper> filters, List<IFacetBuilderHelper> facets) {
         this.fieldsMappingBuilder = fieldsMappingBuilder;
+        this.filters = filters;
+        this.facets = facets;
     }
 
     @Override
@@ -34,13 +31,11 @@ public class NestedObjectFieldAnnotationParser implements IPropertyAnnotationPar
         }
 
         fieldDefinition.put("type", "nested");
-        List<IFacetBuilderHelper> facets = Lists.newArrayList();
-        List<IFilterBuilderHelper> filters = Lists.newArrayList();
         Map<String, SourceFetchContext> fetchContext = Maps.newHashMap();
         // nested types can provide replacement class to be managed. This can be usefull to override map default type for example.
         Class<?> replaceClass = annotation.nestedClass().equals(NestedObject.class) ? indexable.getType() : annotation.nestedClass();
         try {
-            this.fieldsMappingBuilder.parseFieldMappings(replaceClass, fieldDefinition, facets, filters, fetchContext, "");
+            this.fieldsMappingBuilder.parseFieldMappings(replaceClass, fieldDefinition, facets, filters, fetchContext, indexable.getName() + ".");
         } catch (IntrospectionException e) {
             LOGGER.error("Fail to parse nested class <" + replaceClass.getName() + ">", e);
         }

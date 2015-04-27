@@ -1,6 +1,7 @@
 package org.elasticsearch.mapping;
 
 import java.io.IOException;
+import java.util.Map;
 
 import javax.annotation.Resource;
 
@@ -13,8 +14,10 @@ import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.SearchType;
+import org.elasticsearch.common.collect.Maps;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.mapping.model.Address;
 import org.elasticsearch.mapping.model.Person;
 import org.elasticsearch.search.sort.SortBuilders;
 import org.junit.Assert;
@@ -42,6 +45,7 @@ public class ElasticSearchInsertMappingTest {
     @Test
     public void testMappingAndInsert() throws Exception {
         String indexName = Person.class.getSimpleName().toLowerCase();
+        mappingBuilder.initialize("org.elasticsearch.mapping.model");
         initIndexes(indexName, new Class[] { Person.class });
 
         esClient.waitForGreenStatus(indexName);
@@ -50,14 +54,38 @@ public class ElasticSearchInsertMappingTest {
         person.setId("personId");
         person.setFirstname("firstname");
         person.setLastname("lastname");
-
+        Address address = new Address();
+        address.setCity("Fontainebleau");
+        person.setAddress(address);
         save(indexName, person);
+
+        person.setId("AnotherPersonId");
+        address.setCity("Paris");
+        save(indexName, person);
+
+        esClient.getClient().admin().indices().prepareRefresh(indexName).execute().actionGet();
 
         Assert.assertNotNull(readById(indexName, "personId"));
 
         SearchResponse response = search(indexName, "first");
         Assert.assertEquals(0, response.getHits().getTotalHits());
         Assert.assertEquals(0, response.getHits().getHits().length);
+
+        String[] searchIndexes = new String[] { indexName };
+        Class<?>[] requestedTypes = new Class[] { Person.class };
+
+        Map<String, String[]> filters = Maps.newHashMap();
+        response = this.queryHelper.buildSearchQuery(searchIndexes, "").types(requestedTypes).filters(filters).search(0, Integer.MAX_VALUE);
+        Assert.assertEquals(2, response.getHits().getTotalHits());
+        filters.put("address.city", new String[] { "Paris" });
+        response = this.queryHelper.buildSearchQuery(searchIndexes, "").types(requestedTypes).filters(filters).search(0, Integer.MAX_VALUE);
+        Assert.assertEquals(1, response.getHits().getTotalHits());
+        filters.put("address.city", new String[] { "Issy" });
+        response = this.queryHelper.buildSearchQuery(searchIndexes, "").types(requestedTypes).filters(filters).search(0, Integer.MAX_VALUE);
+        Assert.assertEquals(0, response.getHits().getTotalHits());
+        filters.put("address.city", new String[] { "Fontainebleau" });
+        response = this.queryHelper.buildSearchQuery(searchIndexes, "").types(requestedTypes).filters(filters).search(0, Integer.MAX_VALUE);
+        Assert.assertEquals(1, response.getHits().getTotalHits());
     }
 
     public void initIndexes(String indexName, Class<?>[] classes) throws Exception {
@@ -71,6 +99,7 @@ public class ElasticSearchInsertMappingTest {
             CreateIndexRequestBuilder createIndexRequestBuilder = esClient.getClient().admin().indices().prepareCreate(indexName);
 
             for (Class<?> clazz : classes) {
+                System.out.println(mappingBuilder.getMapping(clazz));
                 createIndexRequestBuilder.addMapping(clazz.getSimpleName().toLowerCase(), mappingBuilder.getMapping(clazz));
             }
             final CreateIndexResponse createResponse = createIndexRequestBuilder.execute().actionGet();
