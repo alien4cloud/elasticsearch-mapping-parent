@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.elasticsearch.annotation.ESAll;
 import org.elasticsearch.annotation.ESObject;
 import org.elasticsearch.annotation.TypeName;
 import org.elasticsearch.util.AnnotationScanner;
@@ -157,6 +158,8 @@ public class MappingBuilder {
 
     private void parseClassMapping(Class<?> clazz, String pathPrefix) throws IntrospectionException, JsonGenerationException, JsonMappingException, IOException {
         ESObject esObject = AnnotationScanner.getAnnotation(ESObject.class, clazz);
+        ESAll esAll = AnnotationScanner.getAnnotation(ESAll.class, clazz);
+
         TypeName typeName = clazz.getAnnotation(TypeName.class);
         String typeNameStr;
         if (typeName == null) {
@@ -173,7 +176,11 @@ public class MappingBuilder {
 
         typeDefinitionMap.put(typeNameStr, classDefinitionMap);
 
-        classDefinitionMap.put("_all", MapUtil.getMap("enabled", esObject.all()));
+        if(esAll!=null) {
+            classDefinitionMap.put("_all", MapUtil.getMap(new String[]{"enabled", "analyser", "store"}, new Object[]{true, esAll.analyser(), esAll.store()}));
+        } else {
+            classDefinitionMap.put("_all", MapUtil.getMap("enabled", esObject.all()));
+        }
         classDefinitionMap.put("_source", MapUtil.getMap("enabled", esObject.source()));
         classDefinitionMap.put("_type", MapUtil.getMap(new String[] { "store", "index" }, new Object[] { esObject.store(), esObject.index() }));
 
