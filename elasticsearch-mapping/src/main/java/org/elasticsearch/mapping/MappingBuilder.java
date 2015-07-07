@@ -177,7 +177,7 @@ public class MappingBuilder {
         typeDefinitionMap.put(typeNameStr, classDefinitionMap);
 
         if(esAll!=null) {
-            classDefinitionMap.put("_all", MapUtil.getMap(new String[]{"enabled", "analyser", "store"}, new Object[]{true, esAll.analyser(), esAll.store()}));
+            classDefinitionMap.put("_all", MapUtil.getMap(new String[]{"enabled", "analyzer", "store"}, new Object[]{true, esAll.analyser(), esAll.store()}));
         } else {
             classDefinitionMap.put("_all", MapUtil.getMap("enabled", esObject.all()));
         }
