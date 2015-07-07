@@ -1,5 +1,6 @@
 package org.elasticsearch.mapping.model;
 
+import org.elasticsearch.annotation.ESAll;
 import org.elasticsearch.annotation.ESObject;
 import org.elasticsearch.annotation.Id;
 import org.elasticsearch.annotation.NestedObject;
@@ -12,6 +13,7 @@ import org.elasticsearch.mapping.IndexType;
  * @author luc boutier
  */
 @ESObject
+@ESAll(analyser = "simple")
 public class Person {
     @Id
     private String id;
