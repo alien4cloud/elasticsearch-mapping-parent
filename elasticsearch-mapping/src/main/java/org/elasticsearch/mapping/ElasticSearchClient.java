@@ -11,6 +11,8 @@ import org.elasticsearch.client.Client;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.node.Node;
@@ -42,7 +44,10 @@ public class ElasticSearchClient {
     public void initialize() {
         if (this.isClient && this.isTransportClient) {
             // when these both option are set, we use a transport client
-            TransportClient transportClient = new TransportClient();
+            Settings settings = ImmutableSettings.settingsBuilder()
+                .put("cluster.name", this.clusterName)
+                .build();
+            TransportClient transportClient = new TransportClient(settings);
             for (InetSocketTransportAddress add : adresses) {
                 transportClient.addTransportAddress(add);
             }
