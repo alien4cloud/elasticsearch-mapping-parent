@@ -3,7 +3,7 @@
     <parent>
         <groupId>fr.lucboutier.elasticsearch</groupId>
         <artifactId>elasticsearch-mapping-parent</artifactId>
-        <version>1.3.0</version>
+        <version>1.4.0</version>
     </parent>
 
     <artifactId>elasticsearch-mapping</artifactId>

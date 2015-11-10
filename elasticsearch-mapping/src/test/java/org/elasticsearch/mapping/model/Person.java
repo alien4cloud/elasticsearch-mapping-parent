@@ -1,10 +1,6 @@
 package org.elasticsearch.mapping.model;
 
-import org.elasticsearch.annotation.ESAll;
-import org.elasticsearch.annotation.ESObject;
-import org.elasticsearch.annotation.Id;
-import org.elasticsearch.annotation.NestedObject;
-import org.elasticsearch.annotation.StringField;
+import org.elasticsearch.annotation.*;
 import org.elasticsearch.annotation.query.TermFilter;
 import org.elasticsearch.mapping.IndexType;
 
@@ -24,6 +20,17 @@ public class Person {
 
     @NestedObject
     private Address address;
+
+    @NumberField(index = IndexType.not_analyzed, includeInAll = false)
+    private long alienScore = 1;
+
+    public long getAlienScore() {
+        return alienScore;
+    }
+
+    public void setAlienScore(long alienScore) {
+        this.alienScore = alienScore;
+    }
 
     public String getId() {
         return id;

@@ -1,11 +1,7 @@
 package org.elasticsearch.mapping;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
 
 import javax.annotation.Resource;
 
@@ -18,11 +14,7 @@ import org.elasticsearch.common.collect.Lists;
 import org.elasticsearch.common.collect.Maps;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.index.query.BoolQueryBuilder;
-import org.elasticsearch.index.query.FilterBuilder;
-import org.elasticsearch.index.query.FilterBuilders;
-import org.elasticsearch.index.query.QueryBuilder;
-import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.index.query.*;
 import org.elasticsearch.index.query.functionscore.ScoreFunctionBuilders;
 import org.elasticsearch.search.facet.FacetBuilder;
 import org.elasticsearch.search.sort.SortBuilder;
@@ -370,12 +362,35 @@ public class QueryHelper {
          * @param size The maximum number of elements to return.
          */
         public SearchResponse search(int from, int size) {
+            SearchRequestBuilder searchRequestBuilder = generate(from, size);
+            return searchRequestBuilder.execute().actionGet();
+        }
+
+        /**
+         * Generate a SearchRequestBuilder based on the query helper configuration.
+         *
+         * @return an ElasticSearch SearchRequestBuilder that can be used for more advanced configuraiton.
+         */
+        public SearchRequestBuilder generate() {
+            return generate(null);
+        }
+
+        /**
+         * Generate a SearchRequestBuilder based on the query helper configuration.
+         * 
+         * @return an ElasticSearch SearchRequestBuilder that can be used for more advanced configuraiton.
+         */
+        public SearchRequestBuilder generate(QueryBuilderAdapter queryBuilderAdapter) {
             SearchRequestBuilder searchRequestBuilder = esClient.getClient().prepareSearch(this.indices);
-            searchRequestBuilder.setSearchType(SearchType.QUERY_THEN_FETCH).setSize(size).setFrom(from);
+            searchRequestBuilder.setSearchType(SearchType.QUERY_THEN_FETCH);
+            QueryBuilder query = queryBuilder;
+            if (queryBuilderAdapter != null) {
+                query = queryBuilderAdapter.adapt(queryBuilder);
+            }
             if (functionScore == null) {
-                searchRequestBuilder.setQuery(queryBuilder);
+                searchRequestBuilder.setQuery(query);
             } else {
-                searchRequestBuilder.setQuery(QueryBuilders.functionScoreQuery(queryBuilder, ScoreFunctionBuilders.scriptFunction(functionScore)));
+                searchRequestBuilder.setQuery(QueryBuilders.functionScoreQuery(query, ScoreFunctionBuilders.scriptFunction(functionScore)));
             }
             searchRequestBuilder.setTypes(getTypes());
             if (classes != null && classes.length > 0) {
@@ -401,7 +416,32 @@ public class QueryHelper {
             } else {
                 searchRequestBuilder.addSort(SortBuilders.fieldSort(prefixField));
             }
-            return searchRequestBuilder.execute().actionGet();
+            return searchRequestBuilder;
+        }
+
+        /**
+         * Generate a SearchRequestBuilder based on the query helper configuration.
+         *
+         * @param from The start index of the search (for pagination).
+         * @param size The maximum number of elements to return.
+         * @param queryBuilderAdapter adapter.
+         * @return an ElasticSearch SearchRequestBuilder that can be used for more advanced configuraiton.
+         */
+        public SearchRequestBuilder generate(int from, int size, QueryBuilderAdapter queryBuilderAdapter) {
+            SearchRequestBuilder searchRequestBuilder = generate(queryBuilderAdapter);
+            searchRequestBuilder.setSize(size).setFrom(from);
+            return searchRequestBuilder;
+        }
+
+        /**
+         * Generate a SearchRequestBuilder based on the query helper configuration.
+         *
+         * @param from The start index of the search (for pagination).
+         * @param size The maximum number of elements to return.
+         * @return an ElasticSearch SearchRequestBuilder that can be used for more advanced configuraiton.
+         */
+        public SearchRequestBuilder generate(int from, int size) {
+            return generate(from, size, null);
         }
 
         private void addFetchContext(SearchRequestBuilder searchRequestBuilder) {
