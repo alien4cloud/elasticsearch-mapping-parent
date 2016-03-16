@@ -4,7 +4,7 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
-
+import org.elasticsearch.mapping.NoneEnumType;
 import org.elasticsearch.search.facet.terms.TermsFacet.ComparatorType;
 
 /**
@@ -21,11 +21,21 @@ import org.elasticsearch.search.facet.terms.TermsFacet.ComparatorType;
 @Target({ ElementType.FIELD, ElementType.METHOD })
 public @interface TermsFacet {
     /**
-     * The property sub-path if any.
+     * The property sub-path if any.<br>
+     * If {@link #keysEnum()} is provided, this will be used as property sub paths of the values of the map
+     * that will be used as terms.
      * 
      * @return The property sub path if any.
      */
     String[] paths() default "";
+
+    /**
+     * If dealing with a map (that will be stored as is), specified an Enum of keys you want to be a facet<br>
+     * This can be used in combination with {@link #paths()} if the values of the map are complex types
+     * 
+     * @return The property sub path if any.
+     */
+    Class<? extends Enum<?>> keysEnum() default NoneEnumType.class;
 
     /**
      * The number of terms to return
@@ -56,4 +66,5 @@ public @interface TermsFacet {
      * @return Array of terms that should be excluded from the terms facet request result.
      */
     String[] exclude() default {};
+
 }

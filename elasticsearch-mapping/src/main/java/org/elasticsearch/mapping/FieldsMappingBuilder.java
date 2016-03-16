@@ -215,23 +215,13 @@ public class FieldsMappingBuilder {
         }
     }
 
-    private void processFacetAnnotation(List<IFacetBuilderHelper> classFacets, List<IFilterBuilderHelper> classFilters, String esFieldName, Indexable indexable) {
+    private void processFacetAnnotation(List<IFacetBuilderHelper> classFacets, List<IFilterBuilderHelper> classFilters, String esFieldName,
+            Indexable indexable) {
         TermsFacet termsFacet = indexable.getAnnotation(TermsFacet.class);
         if (termsFacet != null) {
-            String[] paths = termsFacet.paths();
-            for (String path : paths) {
-                path = path.trim();
-                boolean isAnalyzed = isAnalyzed(indexable);
-                String nestedPath = indexable.getAnnotation(NestedObject.class) == null ? null : esFieldName;
-                String filterPath = getFilterPath(path, esFieldName);
-
-                IFacetBuilderHelper facetBuilderHelper = new TermsFacetBuilderHelper(isAnalyzed, nestedPath, filterPath, termsFacet);
-                classFacets.add(facetBuilderHelper);
-                if (classFilters.contains(facetBuilderHelper)) {
-                    classFilters.remove(facetBuilderHelper);
-                    LOGGER.warn("Field <" + esFieldName + "> already had a filter that will be replaced by the defined facet. Only a single one is allowed.");
-                }
-                classFilters.add(facetBuilderHelper);
+            boolean keysEnumProvided = processFacetKeysEnum(classFacets, classFilters, esFieldName, indexable, termsFacet);
+            if (!keysEnumProvided) {
+                processFacetPaths(classFacets, classFilters, esFieldName, termsFacet.paths(), indexable, termsFacet);
             }
             return;
         }
@@ -245,6 +235,52 @@ public class FieldsMappingBuilder {
             }
             classFilters.add(facetBuilderHelper);
         }
+    }
+
+    private void processFacetPaths(List<IFacetBuilderHelper> classFacets, List<IFilterBuilderHelper> classFilters, String esFieldName, String[] paths,
+            Indexable indexable, TermsFacet termsFacet) {
+        for (String path : paths) {
+            path = path.trim();
+            boolean isAnalyzed = isAnalyzed(indexable);
+            String nestedPath = indexable.getAnnotation(NestedObject.class) == null ? null : esFieldName;
+            String filterPath = getFilterPath(path, esFieldName);
+
+            IFacetBuilderHelper facetBuilderHelper = new TermsFacetBuilderHelper(isAnalyzed, nestedPath, filterPath, termsFacet);
+            classFacets.add(facetBuilderHelper);
+            if (classFilters.contains(facetBuilderHelper)) {
+                classFilters.remove(facetBuilderHelper);
+                LOGGER.warn("Field <" + esFieldName + "> already had a filter that will be replaced by the defined facet. Only a single one is allowed.");
+            }
+            classFilters.add(facetBuilderHelper);
+        }
+    }
+
+    @SuppressWarnings("rawtypes")
+    private boolean processFacetKeysEnum(List<IFacetBuilderHelper> classFacets, List<IFilterBuilderHelper> classFilters, String esFieldName,
+            Indexable indexable, TermsFacet termsFacet) {
+        Class<? extends Enum<?>> keysEnum = termsFacet.keysEnum();
+        // return if the enum type is NoneEnumType
+        if (Objects.equals(keysEnum.getName(), NoneEnumType.class.getName())) {
+            return false;
+        }
+
+        String[] subPaths = termsFacet.paths();
+        Set<String> fullPaths = Sets.newHashSet();
+        // if subPaths are provided, then use it to build a full path like: key.subPath
+        if (ArrayUtils.isNotEmpty(subPaths)) {
+            for (Enum key : keysEnum.getEnumConstants()) {
+                for (String subPath : subPaths) {
+                    fullPaths.add(getFilterPath(subPath.trim(), key.toString()));
+                }
+            }
+        } else {
+            for (Enum key : keysEnum.getEnumConstants()) {
+                fullPaths.add(key.toString());
+            }
+        }
+
+        processFacetPaths(classFacets, classFilters, esFieldName, fullPaths.toArray(new String[] {}), indexable, termsFacet);
+        return true;
     }
 
     private String getFilterPath(String path, String esFieldName) {
