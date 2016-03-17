@@ -215,10 +215,22 @@ public class FieldsMappingBuilder {
         }
     }
 
-    private void processFacetAnnotation(List<IFacetBuilderHelper> classFacets, List<IFilterBuilderHelper> classFilters, String esFieldName, Indexable indexable) {
+    private void processFacetAnnotation(List<IFacetBuilderHelper> classFacets, List<IFilterBuilderHelper> classFilters, String esFieldName,
+            Indexable indexable) {
         TermsFacet termsFacet = indexable.getAnnotation(TermsFacet.class);
         if (termsFacet != null) {
             String[] paths = termsFacet.paths();
+            if (termsFacet.pathGenerator() != null) {
+                // create an instance of the generator
+                try {
+                    IPathGenerator generator = termsFacet.pathGenerator().newInstance();
+                    paths = generator.getPaths(paths);
+                } catch (InstantiationException e) {
+                    e.printStackTrace(); // TODO better exception handling
+                } catch (IllegalAccessException e) {
+                    e.printStackTrace(); // TODO better exception handling
+                }
+            }
             for (String path : paths) {
                 path = path.trim();
                 boolean isAnalyzed = isAnalyzed(indexable);

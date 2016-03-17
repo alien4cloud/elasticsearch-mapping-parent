@@ -28,6 +28,13 @@ public @interface TermsFacet {
     String[] paths() default "";
 
     /**
+     * Optional paths generator to override the paths property of the annotation for complex use-case or reflection etc.
+     * 
+     * @return the path generator.
+     */
+    Class<? extends IPathGenerator> pathGenerator() default IPathGenerator.DEFAULT.class;
+
+    /**
      * The number of terms to return
      * 
      * @return The number of terms to return (default is 10).
