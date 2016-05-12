@@ -14,7 +14,6 @@ import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.SearchType;
-import org.elasticsearch.common.collect.Maps;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.mapping.model.Address;
@@ -26,10 +25,8 @@ import org.junit.runner.RunWith;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import com.fasterxml.jackson.core.JsonGenerationException;
-import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.Maps;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration("classpath:elasticsearch-test-context.xml")
@@ -57,11 +54,11 @@ public class ElasticSearchInsertMappingTest {
         Address address = new Address();
         address.setCity("Fontainebleau");
         person.setAddress(address);
-        save(indexName, person);
+        save(indexName, person, person.getId());
 
         person.setId("AnotherPersonId");
         address.setCity("Paris");
-        save(indexName, person);
+        save(indexName, person, person.getId());
 
         esClient.getClient().admin().indices().prepareRefresh(indexName).execute().actionGet();
 
@@ -109,12 +106,12 @@ public class ElasticSearchInsertMappingTest {
         }
     }
 
-    public void save(String indexName, Person data) throws JsonGenerationException, JsonMappingException, IOException {
+    public void save(String indexName, Person data, String id) throws IOException {
         String json = jsonMapper.writeValueAsString(data);
-        esClient.getClient().prepareIndex(indexName, indexName).setOperationThreaded(false).setSource(json).setRefresh(true).execute().actionGet();
+        esClient.getClient().prepareIndex(indexName, indexName).setSource(json).setId(id).setRefresh(true).execute().actionGet();
     }
 
-    public Person readById(String indexName, String id) throws JsonParseException, JsonMappingException, IOException {
+    public Person readById(String indexName, String id) throws IOException {
         GetResponse response = esClient.getClient().prepareGet(indexName, indexName, id).execute().actionGet();
 
         if (response == null || !response.isExists()) {

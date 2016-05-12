@@ -2,17 +2,18 @@ package org.elasticsearch.mapping;
 
 import java.beans.IntrospectionException;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.lang.reflect.InvocationTargetException;
+import java.util.*;
 
+import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.annotation.ESAll;
 import org.elasticsearch.annotation.ESObject;
 import org.elasticsearch.annotation.TypeName;
+import org.elasticsearch.common.joda.Joda;
+import org.elasticsearch.index.mapper.internal.TimestampFieldMapper;
 import org.elasticsearch.util.AnnotationScanner;
 import org.elasticsearch.util.MapUtil;
+import org.joda.time.format.DateTimeFormatter;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
@@ -29,13 +30,16 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 @Scope("singleton")
 public class MappingBuilder {
     private FieldsMappingBuilder fieldsMappingBuilder = new FieldsMappingBuilder();
+    private Map<String, Indexable> idPropertyByClassName = new HashMap<>();
+    private Map<String, Indexable> routingPropertyByClassName = new HashMap<>();
+    private Map<String, Indexable> timestampPropertyByClassName = new HashMap<>();
+    private Map<String, String> timestampFormatByClassName = new HashMap<>();
+    private Map<String, String> classesMappings = new HashMap<>();
+    private Map<String, String> typeByClassName = new HashMap<>();
 
-    private Map<String, String> classesMappings = new HashMap<String, String>();
-    private Map<String, String> typeByClassName = new HashMap<String, String>();
-
-    private Map<String, List<IFilterBuilderHelper>> filtersByClassName = new HashMap<String, List<IFilterBuilderHelper>>();
-    private Map<String, List<IFacetBuilderHelper>> facetByClassName = new HashMap<String, List<IFacetBuilderHelper>>();
-    private Map<String, Map<String, SourceFetchContext>> fetchSourceContextByClass = new HashMap<String, Map<String, SourceFetchContext>>();
+    private Map<String, List<IFilterBuilderHelper>> filtersByClassName = new HashMap<>();
+    private Map<String, List<IFacetBuilderHelper>> facetByClassName = new HashMap<>();
+    private Map<String, Map<String, SourceFetchContext>> fetchSourceContextByClass = new HashMap<>();
 
     /**
      * Helper to return a valid index type from a class. Currently uses clazz.getSimpleName().toLowerCase();
@@ -75,13 +79,70 @@ public class MappingBuilder {
      * @throws IntrospectionException instrospection error.
      * @throws IOException io error.
      */
-    public String getMapping(Class<?> clazz) throws JsonGenerationException, JsonMappingException, IntrospectionException, IOException {
+    public String getMapping(Class<?> clazz) throws IntrospectionException, IOException {
         String classMapping = classesMappings.get(clazz.getName());
         if (classMapping == null) {
             parseClassMapping(clazz, "");
         }
         classMapping = classesMappings.get(clazz.getName());
         return classMapping;
+    }
+
+    /**
+     * Get the id of the document
+     * 
+     * @param document The document for which to get the id value
+     * @return id value
+     */
+    public String getDocumentId(Object document) throws InvocationTargetException, IllegalAccessException {
+        Indexable idProperty = idPropertyByClassName.get(document.getClass().getName());
+        if (idProperty != null) {
+            Object idValue = idProperty.getPropertyValue(document);
+            if (idValue != null) {
+                return idValue.toString();
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Get the path (name of property) to retrieve the routing of the document
+     *
+     * @param document The document for which to get the id value
+     * @return id path (name of property)
+     */
+    public String getDocumentRouting(Object document) throws InvocationTargetException, IllegalAccessException {
+        Indexable routingProperty = routingPropertyByClassName.get(document.getClass().getName());
+        if (routingProperty != null) {
+            Object routingValue = routingProperty.getPropertyValue(document);
+            if (routingValue != null) {
+                return routingValue.toString();
+            }
+        }
+        return null;
+    }
+
+    public String getDocumentTimestamp(Object document) throws InvocationTargetException, IllegalAccessException {
+        Indexable timestamp = timestampPropertyByClassName.get(document.getClass().getName());
+        if (timestamp != null) {
+            Object timestampValue = timestamp.getPropertyValue(document);
+            if (timestampValue != null) {
+                String format = timestampFormatByClassName.get(document.getClass().getName());
+                if (format == null) {
+                    format = TimestampFieldMapper.DEFAULT_DATE_TIME_FORMAT;
+                }
+                DateTimeFormatter dateTimeFormatter = Joda.forPattern(format).printer();
+                if (timestampValue instanceof Date) {
+                    timestampValue = ((Date) timestampValue).getTime();
+                }
+                if (!(timestampValue instanceof Long)) {
+                    throw new ElasticsearchParseException("Only support " + Date.class.getName() + " or " + long.class.getName() + " or " + Long.class.getName()
+                            + " for timestamp value but found " + timestampValue.getClass().getName());
+                }
+                return dateTimeFormatter.print((Long) timestampValue);
+            }
+        }
+        return null;
     }
 
     /**
@@ -156,7 +217,7 @@ public class MappingBuilder {
         }
     }
 
-    private void parseClassMapping(Class<?> clazz, String pathPrefix) throws IntrospectionException, JsonGenerationException, JsonMappingException, IOException {
+    private void parseClassMapping(Class<?> clazz, String pathPrefix) throws IntrospectionException, IOException {
         ESObject esObject = AnnotationScanner.getAnnotation(ESObject.class, clazz);
         ESAll esAll = AnnotationScanner.getAnnotation(ESAll.class, clazz);
 
@@ -176,16 +237,40 @@ public class MappingBuilder {
 
         typeDefinitionMap.put(typeNameStr, classDefinitionMap);
 
-        if(esAll!=null) {
-            classDefinitionMap.put("_all", MapUtil.getMap(new String[]{"enabled", "analyzer", "store"}, new Object[]{true, esAll.analyser(), esAll.store()}));
+        if (esAll != null) {
+            classDefinitionMap.put("_all",
+                    MapUtil.getMap(new String[] { "enabled", "analyzer", "store" }, new Object[] { true, esAll.analyser(), esAll.store() }));
         } else {
             classDefinitionMap.put("_all", MapUtil.getMap("enabled", esObject.all()));
         }
         classDefinitionMap.put("_source", MapUtil.getMap("enabled", esObject.source()));
-        classDefinitionMap.put("_type", MapUtil.getMap(new String[] { "store", "index" }, new Object[] { esObject.store(), esObject.index() }));
 
         this.fieldsMappingBuilder.parseFieldMappings(clazz, classDefinitionMap, facetFields, filteredFields, fetchContexts, pathPrefix);
-
+        // Id mapping has been removed from elasticsearch 2.x
+        Map<String, Object> idMapping = (Map<String, Object>) classDefinitionMap.remove("_id");
+        if (idMapping != null && idMapping.containsKey("path")) {
+            this.idPropertyByClassName.put(clazz.getName(), (Indexable) idMapping.get("path"));
+        }
+        // Routing mapping has been restricted in elasticsearch 2.x to required only, path cannot be defined
+        Map<String, Object> routingMapping = (Map<String, Object>) classDefinitionMap.get("_routing");
+        if (routingMapping != null) {
+            Indexable routingPath = (Indexable) routingMapping.remove("path");
+            if (routingPath != null) {
+                this.routingPropertyByClassName.put(clazz.getName(), routingPath);
+            }
+        }
+        // Timestamp mapping has been restricted in elasticsearch 2.x, path cannot be defined
+        Map<String, Object> timestampMapping = (Map<String, Object>) classDefinitionMap.get("_timestamp");
+        if (timestampMapping != null) {
+            Indexable timestampPath = (Indexable) timestampMapping.remove("path");
+            if (timestampPath != null) {
+                this.timestampPropertyByClassName.put(clazz.getName(), timestampPath);
+            }
+            String format = (String) timestampMapping.get("format");
+            if (format != null) {
+                this.timestampFormatByClassName.put(clazz.getName(), format);
+            }
+        }
         ObjectMapper mapper = new ObjectMapper();
         String jsonMapping = mapper.writeValueAsString(typeDefinitionMap);
         this.classesMappings.put(clazz.getName(), jsonMapping);

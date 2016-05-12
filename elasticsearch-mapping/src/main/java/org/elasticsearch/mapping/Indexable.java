@@ -3,6 +3,7 @@ package org.elasticsearch.mapping;
 import java.beans.PropertyDescriptor;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.Collection;
@@ -89,5 +90,27 @@ public class Indexable {
             return propertyDescriptor.getReadMethod().getAnnotation(annotationClass);
         }
         return null;
+    }
+
+    public Object getPropertyValue(Object from) throws IllegalAccessException, InvocationTargetException {
+        if (propertyDescriptor != null && propertyDescriptor.getReadMethod() != null) {
+            return propertyDescriptor.getReadMethod().invoke(from);
+        }
+        if (field != null) {
+            field.setAccessible(true);
+            return field.get(from);
+        }
+        return null;
+    }
+
+    @Override
+    public String toString() {
+        if (field != null) {
+            return field.getName();
+        }
+        if (propertyDescriptor != null) {
+            return propertyDescriptor.getName();
+        }
+        return "empty indexable";
     }
 }

@@ -1,28 +1,51 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <groupId>fr.lucboutier.elasticsearch</groupId>
+    <groupId>alien4cloud</groupId>
     <artifactId>elasticsearch-mapping-parent</artifactId>
-    <version>1.4.0</version>
+    <version>1.5.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>Elastic search mapping parent</name>
     <description>An object mapping framework for Elastic Search.</description>
 
     <properties>
-        <elasticsearch.version>1.7.0</elasticsearch.version>
-        <jackson.version>2.0.4</jackson.version>
+        <elasticsearch.version>2.3.2</elasticsearch.version>
+        <jackson.version>2.6.2</jackson.version>
         <spring.version>3.1.0.RELEASE</spring.version>
         <junit.version>4.10</junit.version>
-
-        <java.version>1.6</java.version>
+        <java.version>1.7</java.version>
         <maven.compiler.version>2.3.2</maven.compiler.version>
+        <lombok.version>1.14.4</lombok.version>
+        <slf4j.version>1.7.5</slf4j.version>
+        <jna.version>4.2.2</jna.version>
     </properties>
 
     <modules>
         <module>elasticsearch-annotations</module>
         <module>elasticsearch-mapping</module>
+        <module>elasticsearch-dao</module>
     </modules>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>${lombok.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <!-- logging -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>${slf4j.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-log4j12</artifactId>
+            <version>${slf4j.version}</version>
+        </dependency>
+    </dependencies>
 
     <dependencyManagement>
         <dependencies>
@@ -30,6 +53,16 @@
                 <groupId>org.elasticsearch</groupId>
                 <artifactId>elasticsearch</artifactId>
                 <version>${elasticsearch.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.elasticsearch.plugin</groupId>
+                <artifactId>delete-by-query</artifactId>
+                <version>${elasticsearch.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>net.java.dev.jna</groupId>
+                <artifactId>jna</artifactId>
+                <version>${jna.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.lucene</groupId>

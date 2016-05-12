@@ -1,6 +1,6 @@
 package org.elasticsearch.mapping;
 
-import org.elasticsearch.search.facet.FacetBuilder;
+import org.elasticsearch.search.aggregations.ValuesSourceAggregationBuilder;
 
 /**
  * Utility that build facet for an object.
@@ -13,5 +13,5 @@ public interface IFacetBuilderHelper extends IFilterBuilderHelper {
      * 
      * @return The facet.
      */
-    FacetBuilder buildFacet();
+    ValuesSourceAggregationBuilder<? extends ValuesSourceAggregationBuilder> buildFacet();
 }

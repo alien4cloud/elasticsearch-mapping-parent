@@ -1,6 +1,7 @@
 package org.elasticsearch.mapping;
 
-import org.elasticsearch.index.query.*;
+import org.elasticsearch.index.query.QueryBuilder;
+import org.elasticsearch.index.query.QueryBuilders;
 
 /**
  * Build a term filter.
@@ -23,15 +24,15 @@ public class TermsFilterBuilderHelper extends AbstractFilterBuilderHelper {
     }
 
     @Override
-    public FilterBuilder buildFilter(final String key, final String... values) {
+    public QueryBuilder buildFilter(final String key, final String... values) {
         preProcessValues(values);
         if (values.length == 1) {
             if (values[0] == null) {
-                return FilterBuilders.missingFilter(key).existence(true).nullValue(true);
+                return QueryBuilders.missingQuery(key).existence(true).nullValue(true);
             }
-            return FilterBuilders.termFilter(key, values[0]);
+            return QueryBuilders.termQuery(key, values[0]);
         }
-        return FilterBuilders.inFilter(key, values);
+        return QueryBuilders.termsQuery(key, values);
     }
 
     @Override
@@ -40,7 +41,7 @@ public class TermsFilterBuilderHelper extends AbstractFilterBuilderHelper {
         if (values.length == 1) {
             return QueryBuilders.termQuery(key, values[0]);
         }
-        return QueryBuilders.inQuery(key, values);
+        return QueryBuilders.termsQuery(key, values);
     }
 
     private void preProcessValues(String[] values) {

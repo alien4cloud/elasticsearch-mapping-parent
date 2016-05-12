@@ -2,14 +2,15 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <groupId>fr.lucboutier.elasticsearch</groupId>
+        <groupId>alien4cloud</groupId>
         <artifactId>elasticsearch-mapping-parent</artifactId>
-        <version>1.4.0</version>
+        <version>1.5.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>elasticsearch-annotations</artifactId>
     <name>Elastic search annotations</name>
-    <description>Annotations for elastic search that can be handled by the elasticsearch-mapping's MappingBuilder.</description>
+    <description>Annotations for elastic search that can be handled by the elasticsearch-mapping's MappingBuilder.
+    </description>
 
     <dependencies>
         <dependency>

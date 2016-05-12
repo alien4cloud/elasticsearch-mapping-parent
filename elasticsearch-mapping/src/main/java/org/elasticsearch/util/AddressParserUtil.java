@@ -1,5 +1,7 @@
 package org.elasticsearch.util;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -13,7 +15,7 @@ public class AddressParserUtil {
 
     private static final ESLogger LOGGER = Loggers.getLogger(AddressParserUtil.class);
 
-    public static List<InetSocketTransportAddress> parseHostCsvList(String hostCsvList) {
+    public static List<InetSocketTransportAddress> parseHostCsvList(String hostCsvList) throws UnknownHostException {
         List<InetSocketTransportAddress> adresses = new ArrayList<InetSocketTransportAddress>();
         if (hostCsvList == null) {
             return adresses;
@@ -26,7 +28,7 @@ public class AddressParserUtil {
                 if (matcher.matches()) {
                     String host = matcher.group(1);
                     Integer port = Integer.valueOf(matcher.group(2));
-                    InetSocketTransportAddress address = new InetSocketTransportAddress(host, port);
+                    InetSocketTransportAddress address = new InetSocketTransportAddress(InetAddress.getByName(host), port);
                     adresses.add(address);
                 } else {
                     LOGGER.warn("Host address not recognized : <" + hostArrEl + ">");

@@ -64,7 +64,6 @@ public class FieldsMappingBuilder {
             // Id, routing and boost are valid only for root object.
             processIdAnnotation(classDefinitionMap, esFieldName, indexable);
             processRoutingAnnotation(classDefinitionMap, esFieldName, indexable);
-            processBoostAnnotation(classDefinitionMap, esFieldName, indexable);
             // Timestamp field annotation
             processTimeStampAnnotation(classDefinitionMap, esFieldName, indexable);
         }
@@ -107,7 +106,7 @@ public class FieldsMappingBuilder {
                 LOGGER.warn("An Id annotation is defined on field <" + esFieldName + "> of <" + indexable.getDeclaringClassName()
                         + "> but an id has already be defined for <" + ((Map<String, Object>) classDefinitionMap.get("_id")).get("path") + ">");
             } else {
-                classDefinitionMap.put("_id", MapUtil.getMap(new String[] { "path", "index", "store" }, new Object[] { esFieldName, id.index(), id.store() }));
+                classDefinitionMap.put("_id", MapUtil.getMap(new String[] { "path" }, new Object[] { indexable }));
             }
         }
     }
@@ -121,25 +120,9 @@ public class FieldsMappingBuilder {
                         + "> but a routing has already be defined for <" + ((Map<String, Object>) classDefinitionMap.get("_routing")).get("path") + ">");
             } else {
                 Map<String, Object> routingDef = new HashMap<String, Object>();
-                routingDef.put("path", esFieldName);
+                routingDef.put("path", indexable);
                 routingDef.put("required", routing.required());
                 classDefinitionMap.put("_routing", routingDef);
-            }
-        }
-    }
-
-    @SuppressWarnings("unchecked")
-    private void processBoostAnnotation(Map<String, Object> classDefinitionMap, String esFieldName, Indexable indexable) {
-        Boost boost = indexable.getAnnotation(Boost.class);
-        if (boost != null) {
-            if (classDefinitionMap.containsKey("_boost")) {
-                LOGGER.warn("A Boost annotation is defined on field <" + esFieldName + "> of <" + indexable.getDeclaringClassName()
-                        + "> but a boost has already be defined for <" + ((Map<String, Object>) classDefinitionMap.get("_boost")).get("name") + ">");
-            } else {
-                Map<String, Object> boostDef = new HashMap<String, Object>();
-                boostDef.put("name", esFieldName);
-                boostDef.put("null_value", boost.nullValue());
-                classDefinitionMap.put("_boost", boostDef);
             }
         }
     }
@@ -150,11 +133,11 @@ public class FieldsMappingBuilder {
         if (timeStamp != null) {
             if (classDefinitionMap.containsKey("_timestamp")) {
                 LOGGER.warn("A TimeStamp annotation is defined on field <" + esFieldName + "> of <" + indexable.getDeclaringClassName()
-                        + "> but a boost has already be defined for <" + ((Map<String, Object>) classDefinitionMap.get("_timestamp")).get("name") + ">");
+                        + "> but a timestamp has already be defined for <" + ((Map<String, Object>) classDefinitionMap.get("_timestamp")).get("name") + ">");
             } else {
                 Map<String, Object> timeStampDefinition = new HashMap<String, Object>();
                 timeStampDefinition.put("enabled", true);
-                timeStampDefinition.put("path", indexable.getName());
+                timeStampDefinition.put("path", indexable);
 
                 if (!timeStamp.format().isEmpty()) {
                     timeStampDefinition.put("format", timeStamp.format());

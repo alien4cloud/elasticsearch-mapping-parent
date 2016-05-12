@@ -144,6 +144,8 @@ index.number_of_replicas: 0
 #
 path.conf: /src/test/resources
 
+path.home: target
+
 # Path to directory where to store index data allocated for this node.
 #
 path.data: target/esdata

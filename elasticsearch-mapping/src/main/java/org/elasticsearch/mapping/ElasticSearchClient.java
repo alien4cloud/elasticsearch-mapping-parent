@@ -1,22 +1,26 @@
 package org.elasticsearch.mapping;
 
+import java.io.InputStream;
+import java.net.UnknownHostException;
+import java.util.Collections;
 import java.util.List;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 
+import org.elasticsearch.action.admin.cluster.health.ClusterHealthAction;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequestBuilder;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.node.Node;
-import org.elasticsearch.node.NodeBuilder;
+import org.elasticsearch.plugin.deletebyquery.DeleteByQueryPlugin;
+import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.util.AddressParserUtil;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -37,30 +41,33 @@ public class ElasticSearchClient {
     private List<InetSocketTransportAddress> adresses;
     private boolean isLocal;
     private String clusterName;
-    private boolean resetData = false;
     private Client client;
 
     @PostConstruct
     public void initialize() {
+        String defaultConfigFile = "elasticsearch.yml";
+        // FIXME It's bad practice to set max_result_window to max value but currently there are many usages that set max size to max value
+        // FIXME We should take a look at all methods that set query max size to max value and then use scroll api
+        Settings.Builder builder = Settings.settingsBuilder().put("cluster.name", this.clusterName).put("index.max_result_window", Integer.MAX_VALUE);
+        InputStream configStream = ClassLoader.getSystemResourceAsStream(defaultConfigFile);
+        if (configStream != null) {
+            builder.loadFromStream(defaultConfigFile, configStream);
+        }
         if (this.isClient && this.isTransportClient) {
             // when these both option are set, we use a transport client
-            Settings settings = ImmutableSettings.settingsBuilder()
-                .put("cluster.name", this.clusterName)
-                .build();
-            TransportClient transportClient = new TransportClient(settings);
+            TransportClient transportClient = TransportClient.builder().settings(builder.build()).addPlugin(DeleteByQueryPlugin.class).build();
             for (InetSocketTransportAddress add : adresses) {
                 transportClient.addTransportAddress(add);
             }
             this.client = transportClient;
         } else {
+            builder.put("node.client", this.isClient);
+            builder.put("node.local", this.isLocal);
             // when only 'client' option is set, a node without data is initialized and joins the cluster
-            this.node = NodeBuilder.nodeBuilder().client(this.isClient).clusterName(this.clusterName).local(this.isLocal).node();
+            this.node = new ElasticSearchNode(builder.build(), Collections.<Class<? extends Plugin>> singletonList(DeleteByQueryPlugin.class));
+            this.node.start();
             this.client = node.client();
         }
-
-//        if (this.resetData) { // removes all indices from elastic search. For Integration testing only.
-            // this.node.client().admin().indices().prepareDelete().execute().actionGet();
-//        }
         LOGGER.info("Initialized ElasticSearch client for cluster <" + this.clusterName + ">");
     }
 
@@ -91,7 +98,7 @@ public class ElasticSearchClient {
      * @return A {@link ClusterHealthResponse} that contains the cluster health after waiting maximum 5 minutes for green status.
      */
     public ClusterHealthResponse waitForGreenStatus(String... indices) {
-        ClusterHealthRequestBuilder builder = new ClusterHealthRequestBuilder(this.client.admin().cluster());
+        ClusterHealthRequestBuilder builder = new ClusterHealthRequestBuilder(this.client, ClusterHealthAction.INSTANCE);
         builder.setIndices(indices);
         builder.setWaitForGreenStatus();
         builder.setTimeout(TimeValue.timeValueSeconds(30));
@@ -104,7 +111,6 @@ public class ElasticSearchClient {
         LOGGER.debug("getNumberOfNodes         : {}", response.getNumberOfNodes());
         LOGGER.debug("getRelocatingShards      : {}", response.getRelocatingShards());
         LOGGER.debug("getUnassignedShards      : {}", response.getUnassignedShards());
-        LOGGER.debug("getAllValidationFailures : {}", response.getAllValidationFailures());
         return response;
     }
 
@@ -129,12 +135,7 @@ public class ElasticSearchClient {
     }
 
     @Value("#{elasticsearchConfig['elasticSearch.hosts']}")
-    public void setHosts(final String hosts) {
+    public void setHosts(final String hosts) throws UnknownHostException {
         this.adresses = AddressParserUtil.parseHostCsvList(hosts);
-    }
-
-    @Value("#{elasticsearchConfig['elasticSearch.resetData']}")
-    public void setResetData(final boolean resetData) {
-        this.resetData = resetData;
     }
 }

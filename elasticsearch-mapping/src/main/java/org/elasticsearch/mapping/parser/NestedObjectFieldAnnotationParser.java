@@ -5,10 +5,11 @@ import java.util.List;
 import java.util.Map;
 
 import org.elasticsearch.annotation.NestedObject;
-import org.elasticsearch.common.collect.Maps;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.mapping.*;
+
+import com.google.common.collect.Maps;
 
 public class NestedObjectFieldAnnotationParser implements IPropertyAnnotationParser<NestedObject> {
     private static final ESLogger LOGGER = Loggers.getLogger(MappingBuilder.class);

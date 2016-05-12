@@ -10,18 +10,22 @@ import org.elasticsearch.action.count.CountResponse;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.SearchType;
-import org.elasticsearch.common.collect.Lists;
-import org.elasticsearch.common.collect.Maps;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.index.query.*;
+import org.elasticsearch.index.query.BoolQueryBuilder;
+import org.elasticsearch.index.query.QueryBuilder;
+import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.index.query.functionscore.ScoreFunctionBuilders;
-import org.elasticsearch.search.facet.FacetBuilder;
+import org.elasticsearch.search.aggregations.AggregationBuilders;
+import org.elasticsearch.search.aggregations.ValuesSourceAggregationBuilder;
 import org.elasticsearch.search.sort.SortBuilder;
 import org.elasticsearch.search.sort.SortBuilders;
 import org.elasticsearch.search.sort.SortOrder;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 /**
  * Helper class for queries with Elastic Search.
@@ -288,7 +292,7 @@ public class QueryHelper {
         private String functionScore;
         private String fieldSort;
         private boolean fieldSortDesc;
-        private FilterBuilder customFilter;
+        private QueryBuilder customFilter;
 
         private SearchQueryHelperBuilder(String[] indices, String searchQuery) {
             super(indices, searchQuery);
@@ -350,7 +354,7 @@ public class QueryHelper {
          * @param filterBuilder the custom filter builder for the search query
          * @return this
          */
-        public SearchQueryHelperBuilder customFilter(FilterBuilder filterBuilder) {
+        public SearchQueryHelperBuilder customFilter(QueryBuilder filterBuilder) {
             this.customFilter = filterBuilder;
             return this;
         }
@@ -470,15 +474,15 @@ public class QueryHelper {
             searchRequestBuilder.setFetchSource(inc, exc);
         }
 
-        private void addFilters(SearchRequestBuilder searchRequestBuilder, FilterBuilder customFilter, Class<?> clazz) {
+        private void addFilters(SearchRequestBuilder searchRequestBuilder, QueryBuilder customFilter, Class<?> clazz) {
             if (clazz == null) {
                 return;
             }
-            final List<FilterBuilder> esFilters = buildFilters(clazz.getName());
+            final List<QueryBuilder> esFilters = buildFilters(clazz.getName());
             if (customFilter != null) {
                 esFilters.add(customFilter);
             }
-            FilterBuilder filter = null;
+            QueryBuilder filter = null;
             if (esFilters.size() > 0) {
                 filter = getAndFilter(esFilters);
                 searchRequestBuilder.setPostFilter(filter);
@@ -492,24 +496,25 @@ public class QueryHelper {
             }
         }
 
-        private void addFacets(Map<String, String[]> filters, String className, SearchRequestBuilder searchRequestBuilder, FilterBuilder filter) {
-            final List<FacetBuilder> facets = buildFacets(className, filters.keySet());
-            for (final FacetBuilder facet : facets) {
+        private void addFacets(Map<String, String[]> filters, String className, SearchRequestBuilder searchRequestBuilder, QueryBuilder filter) {
+            final List<ValuesSourceAggregationBuilder<? extends ValuesSourceAggregationBuilder>> facets = buildFacets(className, filters.keySet());
+            for (final ValuesSourceAggregationBuilder<? extends ValuesSourceAggregationBuilder> facet : facets) {
                 if (filter != null) {
-                    facet.facetFilter(filter);
+                    searchRequestBuilder.addAggregation(AggregationBuilders.filter(facet.getName()).filter(filter).subAggregation(facet));
+                } else {
+                    searchRequestBuilder.addAggregation(facet);
                 }
-                searchRequestBuilder.addFacet(facet);
             }
         }
 
-        private List<FilterBuilder> buildFilters(String className) {
-            List<FilterBuilder> filterBuilders = new ArrayList<FilterBuilder>();
+        private List<QueryBuilder> buildFilters(String className) {
+            List<QueryBuilder> filterBuilders = new ArrayList<QueryBuilder>();
 
             if (filters == null) {
                 return filterBuilders;
             }
 
-            Map<String, List<FilterBuilder>> nestedFilterBuilders = new HashMap<String, List<FilterBuilder>>();
+            Map<String, List<QueryBuilder>> nestedFilterBuilders = new HashMap<String, List<QueryBuilder>>();
             List<IFilterBuilderHelper> filterBuilderHelpers = mappingBuilder.getFilters(className);
             if (filterBuilderHelpers == null) {
                 return filterBuilders;
@@ -519,9 +524,9 @@ public class QueryHelper {
                 String esFieldName = filterBuilderHelper.getEsFieldName();
                 if (filters.containsKey(esFieldName)) {
                     if (filterBuilderHelper.isNested()) {
-                        List<FilterBuilder> nestedFilters = nestedFilterBuilders.get(filterBuilderHelper.getNestedPath());
+                        List<QueryBuilder> nestedFilters = nestedFilterBuilders.get(filterBuilderHelper.getNestedPath());
                         if (nestedFilters == null) {
-                            nestedFilters = new ArrayList<FilterBuilder>(3);
+                            nestedFilters = new ArrayList<QueryBuilder>(3);
                             nestedFilterBuilders.put(filterBuilderHelper.getNestedPath(), nestedFilters);
                         }
                         nestedFilters.addAll(buildFilters(filterBuilderHelper, esFieldName, filters.get(esFieldName), filterStrategies.get(esFieldName)));
@@ -531,29 +536,29 @@ public class QueryHelper {
                 }
             }
 
-            for (Entry<String, List<FilterBuilder>> nestedFilters : nestedFilterBuilders.entrySet()) {
-                filterBuilders.add(FilterBuilders.nestedFilter(nestedFilters.getKey(), getAndFilter(nestedFilters.getValue())));
+            for (Entry<String, List<QueryBuilder>> nestedFilters : nestedFilterBuilders.entrySet()) {
+                filterBuilders.add(QueryBuilders.nestedQuery(nestedFilters.getKey(), getAndFilter(nestedFilters.getValue())));
             }
 
             return filterBuilders;
         }
 
-        private List<FilterBuilder> buildFilters(IFilterBuilderHelper filterBuilderHelper, String esFieldName, String[] values, FilterValuesStrategy strategy) {
+        private List<QueryBuilder> buildFilters(IFilterBuilderHelper filterBuilderHelper, String esFieldName, String[] values, FilterValuesStrategy strategy) {
             if (strategy == null || FilterValuesStrategy.OR.equals(strategy)) {
                 return Lists.newArrayList(filterBuilderHelper.buildFilter(esFieldName, values));
             }
-            List<FilterBuilder> valuesFilters = Lists.newArrayList();
+            List<QueryBuilder> valuesFilters = Lists.newArrayList();
             for (String value : values) {
                 valuesFilters.add(filterBuilderHelper.buildFilter(esFieldName, value));
             }
             return valuesFilters;
         }
 
-        private FilterBuilder getAndFilter(List<FilterBuilder> filters) {
+        private QueryBuilder getAndFilter(List<QueryBuilder> filters) {
             if (filters.size() == 1) {
                 return filters.get(0);
             }
-            return FilterBuilders.andFilter(filters.toArray(new FilterBuilder[filters.size()]));
+            return QueryBuilders.andQuery(filters.toArray(new QueryBuilder[filters.size()]));
         }
 
         /**
@@ -561,10 +566,10 @@ public class QueryHelper {
          * 
          * @param className The name of the class for which to create facets.
          * @param filters The set of facets to exclude from the facet creation.
-         * @return a {@link List} of {@link FacetBuilder facet builders}.
+         * @return a {@link List} of {@link ValuesSourceAggregationBuilder}
          */
-        private List<FacetBuilder> buildFacets(String className, Set<String> filters) {
-            final List<FacetBuilder> facetBuilders = new ArrayList<FacetBuilder>();
+        private List<ValuesSourceAggregationBuilder<? extends ValuesSourceAggregationBuilder>> buildFacets(String className, Set<String> filters) {
+            final List<ValuesSourceAggregationBuilder<? extends ValuesSourceAggregationBuilder>> facetBuilders = new ArrayList<ValuesSourceAggregationBuilder<? extends ValuesSourceAggregationBuilder>>();
 
             List<IFacetBuilderHelper> facetBuilderHelpers = mappingBuilder.getFacets(className);
             if (facetBuilderHelpers == null) {

@@ -5,8 +5,6 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-import org.elasticsearch.search.facet.terms.TermsFacet.ComparatorType;
-
 /**
  * <p>
  * Allow to specify field facets that return the N most frequent terms.
@@ -20,6 +18,7 @@ import org.elasticsearch.search.facet.terms.TermsFacet.ComparatorType;
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ ElementType.FIELD, ElementType.METHOD })
 public @interface TermsFacet {
+
     /**
      * The property sub-path if any.
      * 

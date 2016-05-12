@@ -1,0 +1,64 @@
+[INFO] Scanning for projects...
+[INFO]                                                                         
+[INFO] ------------------------------------------------------------------------
+[INFO] Building elasticsearch-dao 1.5.0-SNAPSHOT
+[INFO] ------------------------------------------------------------------------
+[INFO] 
+[INFO] --- maven-dependency-plugin:2.8:tree (default-cli) @ elasticsearch-dao ---
+[INFO] alien4cloud:elasticsearch-dao:jar:1.5.0-SNAPSHOT
+[INFO] +- alien4cloud:elasticsearch-mapping:jar:1.5.0-SNAPSHOT:compile
+[INFO] |  +- org.elasticsearch:elasticsearch:jar:2.3.2:compile
+[INFO] |  |  +- org.apache.lucene:lucene-core:jar:5.5.0:compile
+[INFO] |  |  +- org.apache.lucene:lucene-backward-codecs:jar:5.5.0:compile
+[INFO] |  |  +- org.apache.lucene:lucene-analyzers-common:jar:5.5.0:compile
+[INFO] |  |  +- org.apache.lucene:lucene-queries:jar:5.5.0:compile
+[INFO] |  |  +- org.apache.lucene:lucene-memory:jar:5.5.0:compile
+[INFO] |  |  +- org.apache.lucene:lucene-highlighter:jar:5.5.0:compile
+[INFO] |  |  +- org.apache.lucene:lucene-queryparser:jar:5.5.0:compile
+[INFO] |  |  |  \- org.apache.lucene:lucene-sandbox:jar:5.5.0:compile
+[INFO] |  |  +- org.apache.lucene:lucene-suggest:jar:5.5.0:compile
+[INFO] |  |  |  \- org.apache.lucene:lucene-misc:jar:5.5.0:compile
+[INFO] |  |  +- org.apache.lucene:lucene-join:jar:5.5.0:compile
+[INFO] |  |  |  \- org.apache.lucene:lucene-grouping:jar:5.5.0:compile
+[INFO] |  |  +- org.apache.lucene:lucene-spatial:jar:5.5.0:compile
+[INFO] |  |  |  +- org.apache.lucene:lucene-spatial3d:jar:5.5.0:compile
+[INFO] |  |  |  \- com.spatial4j:spatial4j:jar:0.5:compile
+[INFO] |  |  +- com.google.guava:guava:jar:18.0:compile
+[INFO] |  |  +- org.elasticsearch:securesm:jar:1.0:compile
+[INFO] |  |  +- com.carrotsearch:hppc:jar:0.7.1:compile
+[INFO] |  |  +- joda-time:joda-time:jar:2.8.2:compile
+[INFO] |  |  +- org.joda:joda-convert:jar:1.2:compile
+[INFO] |  |  +- com.fasterxml.jackson.core:jackson-core:jar:2.6.2:compile
+[INFO] |  |  +- com.fasterxml.jackson.dataformat:jackson-dataformat-smile:jar:2.6.2:compile
+[INFO] |  |  +- com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:jar:2.6.2:compile
+[INFO] |  |  |  \- org.yaml:snakeyaml:jar:1.15:compile
+[INFO] |  |  +- com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:jar:2.6.2:compile
+[INFO] |  |  +- io.netty:netty:jar:3.10.5.Final:compile
+[INFO] |  |  +- com.ning:compress-lzf:jar:1.0.2:compile
+[INFO] |  |  +- com.tdunning:t-digest:jar:3.0:compile
+[INFO] |  |  +- org.hdrhistogram:HdrHistogram:jar:2.1.6:compile
+[INFO] |  |  +- commons-cli:commons-cli:jar:1.3.1:compile
+[INFO] |  |  \- com.twitter:jsr166e:jar:1.1.0:compile
+[INFO] |  +- net.java.dev.jna:jna:jar:4.2.2:compile
+[INFO] |  +- com.fasterxml.jackson.core:jackson-databind:jar:2.6.2:compile
+[INFO] |  |  \- com.fasterxml.jackson.core:jackson-annotations:jar:2.6.0:compile
+[INFO] |  +- org.springframework:spring-context:jar:3.1.0.RELEASE:compile
+[INFO] |  |  +- org.springframework:spring-aop:jar:3.1.0.RELEASE:compile
+[INFO] |  |  |  \- aopalliance:aopalliance:jar:1.0:compile
+[INFO] |  |  +- org.springframework:spring-beans:jar:3.1.0.RELEASE:compile
+[INFO] |  |  +- org.springframework:spring-core:jar:3.1.0.RELEASE:compile
+[INFO] |  |  |  \- commons-logging:commons-logging:jar:1.1.1:compile
+[INFO] |  |  +- org.springframework:spring-expression:jar:3.1.0.RELEASE:compile
+[INFO] |  |  \- org.springframework:spring-asm:jar:3.1.0.RELEASE:compile
+[INFO] |  \- fr.lucboutier.elasticsearch:elasticsearch-annotations:jar:1.5.0-SNAPSHOT:compile
+[INFO] +- org.projectlombok:lombok:jar:1.14.4:provided
+[INFO] +- org.slf4j:slf4j-api:jar:1.7.5:compile
+[INFO] \- org.slf4j:slf4j-log4j12:jar:1.7.5:compile
+[INFO]    \- log4j:log4j:jar:1.2.17:compile
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time: 1.107 s
+[INFO] Finished at: 2016-05-12T16:37:11+02:00
+[INFO] Final Memory: 17M/309M
+[INFO] ------------------------------------------------------------------------

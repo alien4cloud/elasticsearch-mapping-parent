@@ -2,11 +2,8 @@ package org.elasticsearch.mapping;
 
 import org.elasticsearch.annotation.query.RangeFilter;
 import org.elasticsearch.index.query.BoolQueryBuilder;
-import org.elasticsearch.index.query.FilterBuilder;
-import org.elasticsearch.index.query.FilterBuilders;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
-import org.elasticsearch.index.query.RangeFilterBuilder;
 import org.elasticsearch.index.query.RangeQueryBuilder;
 
 /**
@@ -15,6 +12,7 @@ import org.elasticsearch.index.query.RangeQueryBuilder;
  * @author luc boutier
  */
 public class RangeFilterBuilderHelper extends AbstractFilterBuilderHelper {
+
     private final double[] ranges;
 
     /**
@@ -47,34 +45,18 @@ public class RangeFilterBuilderHelper extends AbstractFilterBuilderHelper {
     }
 
     @Override
-    public FilterBuilder buildFilter(final String key, final String[] rangeValues) {
+    public QueryBuilder buildFilter(final String key, final String[] rangeValues) {
         if (rangeValues == null || rangeValues.length == 0) {
             throw new IllegalArgumentException("Filter values cannot be null or empty");
         }
         if (rangeValues.length == 1) {
-            return buildSingleRangeFilter(key, rangeValues[0]);
+            return buildSingleRangeQuery(key, rangeValues[0]);
         }
-        FilterBuilder[] builders = new FilterBuilder[rangeValues.length];
+        QueryBuilder[] builders = new QueryBuilder[rangeValues.length];
         for (int i = 0; i < rangeValues.length; i++) {
-            builders[i] = buildSingleRangeFilter(key, rangeValues[i]);
+            builders[i] = buildSingleRangeQuery(key, rangeValues[i]);
         }
-        return FilterBuilders.orFilter(builders);
-    }
-
-    private FilterBuilder buildSingleRangeFilter(String key, String value) {
-        String[] values = value.split(" - ");
-        if (value.length() == 0) {
-            return null;
-        }
-        RangeFilterBuilder filterBuilder = FilterBuilders.rangeFilter(key);
-        if (value.length() == 2) {
-            filterBuilder.from(Double.valueOf(values[0]).doubleValue()).to(Double.valueOf(values[1]));
-        } else if (value.startsWith(values[0])) {
-            filterBuilder.gte(Double.valueOf(values[0]).doubleValue());
-        } else {
-            filterBuilder.lt(Double.valueOf(values[0]).doubleValue());
-        }
-        return filterBuilder;
+        return QueryBuilders.orQuery(builders);
     }
 
     @Override

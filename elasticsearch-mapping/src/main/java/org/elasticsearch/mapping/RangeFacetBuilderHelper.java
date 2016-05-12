@@ -1,8 +1,8 @@
 package org.elasticsearch.mapping;
 
 import org.elasticsearch.annotation.query.RangeFacet;
-import org.elasticsearch.search.facet.FacetBuilder;
-import org.elasticsearch.search.facet.range.RangeFacetBuilder;
+import org.elasticsearch.search.aggregations.AggregationBuilders;
+import org.elasticsearch.search.aggregations.bucket.range.RangeBuilder;
 
 /**
  * Build a range facet.
@@ -10,6 +10,7 @@ import org.elasticsearch.search.facet.range.RangeFacetBuilder;
  * @author luc boutier
  */
 public class RangeFacetBuilderHelper extends RangeFilterBuilderHelper implements IFacetBuilderHelper {
+
     private final double[] ranges;
 
     /**
@@ -25,8 +26,8 @@ public class RangeFacetBuilderHelper extends RangeFilterBuilderHelper implements
     }
 
     @Override
-    public FacetBuilder buildFacet() {
-        RangeFacetBuilder rangeFacetBuilder = new RangeFacetBuilder(getEsFieldName()).field(getEsFieldName()).addUnboundedFrom(this.ranges[0]);
+    public RangeBuilder buildFacet() {
+        RangeBuilder rangeFacetBuilder = AggregationBuilders.range(getEsFieldName()).field(getEsFieldName()).addUnboundedFrom(this.ranges[0]);
         int i = 1;
         for (; i < this.ranges.length - 2; i += 2) {
             rangeFacetBuilder.addRange(this.ranges[i], this.ranges[i + 1]);
