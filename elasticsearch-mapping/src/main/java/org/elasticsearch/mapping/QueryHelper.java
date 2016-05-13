@@ -18,6 +18,7 @@ import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.index.query.functionscore.ScoreFunctionBuilders;
 import org.elasticsearch.search.aggregations.AggregationBuilders;
 import org.elasticsearch.search.aggregations.ValuesSourceAggregationBuilder;
+import org.elasticsearch.search.aggregations.bucket.filter.FilterAggregationBuilder;
 import org.elasticsearch.search.sort.SortBuilder;
 import org.elasticsearch.search.sort.SortBuilders;
 import org.elasticsearch.search.sort.SortOrder;
@@ -498,10 +499,14 @@ public class QueryHelper {
 
         private void addFacets(Map<String, String[]> filters, String className, SearchRequestBuilder searchRequestBuilder, QueryBuilder filter) {
             final List<ValuesSourceAggregationBuilder<? extends ValuesSourceAggregationBuilder>> facets = buildFacets(className, filters.keySet());
-            for (final ValuesSourceAggregationBuilder<? extends ValuesSourceAggregationBuilder> facet : facets) {
-                if (filter != null) {
-                    searchRequestBuilder.addAggregation(AggregationBuilders.filter(facet.getName()).filter(filter).subAggregation(facet));
-                } else {
+            if (filter != null) {
+                FilterAggregationBuilder filterAggregationBuilder = AggregationBuilders.filter("facet_filter").filter(filter);
+                searchRequestBuilder.addAggregation(filterAggregationBuilder);
+                for (final ValuesSourceAggregationBuilder<? extends ValuesSourceAggregationBuilder> facet : facets) {
+                    filterAggregationBuilder.subAggregation(facet);
+                }
+            } else {
+                for (final ValuesSourceAggregationBuilder<? extends ValuesSourceAggregationBuilder> facet : facets) {
                     searchRequestBuilder.addAggregation(facet);
                 }
             }

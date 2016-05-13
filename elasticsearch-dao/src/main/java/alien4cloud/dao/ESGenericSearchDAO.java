@@ -22,6 +22,7 @@ import org.elasticsearch.mapping.*;
 import org.elasticsearch.mapping.QueryHelper.SearchQueryHelperBuilder;
 import org.elasticsearch.search.aggregations.Aggregation;
 import org.elasticsearch.search.aggregations.Aggregations;
+import org.elasticsearch.search.aggregations.bucket.filter.InternalFilter;
 import org.elasticsearch.search.aggregations.bucket.terms.InternalTerms;
 import org.elasticsearch.search.aggregations.bucket.terms.Terms;
 import org.elasticsearch.search.sort.SortBuilder;
@@ -34,12 +35,14 @@ import alien4cloud.dao.model.FacetedSearchFacet;
 import alien4cloud.dao.model.FacetedSearchResult;
 import alien4cloud.dao.model.GetMultipleDataResult;
 import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Elastic search dao that manages search operations.
  *
  * @author luc boutier
  */
+@Slf4j
 public class ESGenericSearchDAO extends ESGenericIdDAO implements IGenericSearchDAO {
     // private static final String SCORE_SCRIPT = "_score * ((doc.containsKey('alienScore') && !doc['alienScore'].empty) ? doc['alienScore'].value : 1)";
     @Resource
@@ -363,28 +366,38 @@ public class ESGenericSearchDAO extends ESGenericIdDAO implements IGenericSearch
         return true;
     }
 
+    private void parseTermFacet(InternalTerms<?, ?> termsAggregation, Map<String, FacetedSearchFacet[]> toReturnMap) {
+        List<FacetedSearchFacet> fsf = Lists.newArrayList();
+        for (Terms.Bucket bucket : termsAggregation.getBuckets()) {
+            fsf.add(new FacetedSearchFacet(bucket.getKeyAsString(), bucket.getDocCount()));
+        }
+        // add the missing count as a facet with null value.
+        // This will help filtering on null values of a facet
+        // TODO: wrap the Map<String, FacetedSearchFacet[]> with an object adding a missingCout field
+        if (termsAggregation.getSumOfOtherDocCounts() > 0) {
+            fsf.add(new FacetedSearchFacet(null, termsAggregation.getSumOfOtherDocCounts()));
+        }
+        toReturnMap.put(termsAggregation.getName(), fsf.toArray(new FacetedSearchFacet[fsf.size()]));
+    }
+
+    private void parseFacets(List<Aggregation> aggregations, Map<String, FacetedSearchFacet[]> toReturnMap) {
+        for (Aggregation aggregation : aggregations) {
+            if (aggregation instanceof InternalTerms) {
+                parseTermFacet((InternalTerms<?, ?>) aggregation, toReturnMap);
+            } else if (aggregation instanceof InternalFilter) {
+                parseFacets(((InternalFilter) aggregation).getAggregations().asList(), toReturnMap);
+            } else {
+                log.warn("Unsupported type of aggregation: " + aggregation.getName() + " of type " + aggregation.getClass().getName());
+            }
+        }
+    }
+
     private Map<String, FacetedSearchFacet[]> parseFacets(Aggregations aggregations) {
         if (aggregations == null || aggregations.getAsMap().size() == 0) {
             return null;
         }
-
         Map<String, FacetedSearchFacet[]> toReturnMap = new HashMap<>();
-        for (Aggregation aggregation : aggregations.asList()) {
-            if (aggregation instanceof InternalTerms) {
-                List<FacetedSearchFacet> fsf = Lists.newArrayList();
-                InternalTerms<?, ?> termsAggregation = ((InternalTerms<?, ?>) aggregation);
-                for (Terms.Bucket bucket : termsAggregation.getBuckets()) {
-                    fsf.add(new FacetedSearchFacet(bucket.getKeyAsString(), bucket.getDocCount()));
-                }
-                // add the missing count as a facet with null value.
-                // This will help filtering on null values of a facet
-                // TODO: wrap the Map<String, FacetedSearchFacet[]> with an object adding a missingCout field
-                if (termsAggregation.getSumOfOtherDocCounts() > 0) {
-                    fsf.add(new FacetedSearchFacet(null, termsAggregation.getSumOfOtherDocCounts()));
-                }
-                toReturnMap.put(aggregation.getName(), fsf.toArray(new FacetedSearchFacet[fsf.size()]));
-            }
-        }
+        parseFacets(aggregations.asList(), toReturnMap);
         return toReturnMap;
     }
 
