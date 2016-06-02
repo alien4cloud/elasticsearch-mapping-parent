@@ -296,9 +296,10 @@ public class FieldsMappingBuilder {
 
     private void processComplexType(Class<?> clazz, Map<String, Object> propertiesDefinitionMap, String pathPrefix, Indexable indexable,
             List<IFilterBuilderHelper> filters, List<IFacetBuilderHelper> facets) {
-        NestedObjectFieldAnnotationParser parser = new NestedObjectFieldAnnotationParser(this, filters, facets);
-        processFieldAnnotation(NestedObject.class, parser, propertiesDefinitionMap, pathPrefix, indexable);
-
+        NestedObjectFieldAnnotationParser nested = new NestedObjectFieldAnnotationParser(this, filters, facets);
+        processFieldAnnotation(NestedObject.class, nested, propertiesDefinitionMap, pathPrefix, indexable);
+        ObjectFieldAnnotationParser objectFieldAnnotationParser = new ObjectFieldAnnotationParser(this, filters, facets);
+        processFieldAnnotation(ObjectField.class, objectFieldAnnotationParser, propertiesDefinitionMap, pathPrefix, indexable);
     }
 
     @SuppressWarnings("unchecked")
