@@ -1,10 +1,12 @@
 package org.elasticsearch.mapping;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
-
+import java.util.Set;
 import javax.annotation.Resource;
-
 import org.elasticsearch.action.count.CountRequestBuilder;
 import org.elasticsearch.action.count.CountResponse;
 import org.elasticsearch.action.search.SearchRequestBuilder;
@@ -14,10 +16,14 @@ import org.elasticsearch.common.collect.Lists;
 import org.elasticsearch.common.collect.Maps;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.index.query.*;
+import org.elasticsearch.index.query.BoolQueryBuilder;
+import org.elasticsearch.index.query.FilterBuilder;
+import org.elasticsearch.index.query.FilterBuilders;
+import org.elasticsearch.index.query.QueryBuilder;
+import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.index.query.functionscore.ScoreFunctionBuilders;
 import org.elasticsearch.search.facet.FacetBuilder;
-import org.elasticsearch.search.sort.SortBuilder;
+import org.elasticsearch.search.sort.FieldSortBuilder;
 import org.elasticsearch.search.sort.SortBuilders;
 import org.elasticsearch.search.sort.SortOrder;
 import org.springframework.beans.factory.annotation.Value;
@@ -400,12 +406,14 @@ public class QueryHelper {
                 }
             }
             if (fieldSort != null) {
-                SortBuilder sortBuilder = SortBuilders.fieldSort(fieldSort);
+                FieldSortBuilder sortBuilder = SortBuilders.fieldSort(fieldSort);
                 if (fieldSortDesc) {
                     sortBuilder.order(SortOrder.DESC);
                 } else {
                     sortBuilder.order(SortOrder.ASC);
                 }
+                // TODO: chenged to use sortBuilder.unmappedType
+                sortBuilder.ignoreUnmapped(true);
                 searchRequestBuilder.addSort(sortBuilder);
             }
 
