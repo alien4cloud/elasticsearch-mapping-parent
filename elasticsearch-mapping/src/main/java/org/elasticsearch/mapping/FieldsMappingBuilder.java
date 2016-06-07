@@ -300,6 +300,18 @@ public class FieldsMappingBuilder {
         processFieldAnnotation(NestedObject.class, nested, propertiesDefinitionMap, pathPrefix, indexable);
         ObjectFieldAnnotationParser objectFieldAnnotationParser = new ObjectFieldAnnotationParser(this, filters, facets);
         processFieldAnnotation(ObjectField.class, objectFieldAnnotationParser, propertiesDefinitionMap, pathPrefix, indexable);
+        // by default we consider the complex object as an object mapping and process recursive mapping of every field just as ES would process based on dynamic
+        // mapping
+
+        if (propertiesDefinitionMap.get(indexable.getName()) == null) {
+            // Define mapping as object
+            Map<String, Object> fieldDefinition = (Map<String, Object>) propertiesDefinitionMap.get(indexable.getName());
+            if (fieldDefinition == null) {
+                fieldDefinition = new HashMap<String, Object>();
+                propertiesDefinitionMap.put(indexable.getName(), fieldDefinition);
+            }
+            objectFieldAnnotationParser.parseAnnotation(null, fieldDefinition, pathPrefix, indexable);
+        }
     }
 
     @SuppressWarnings("unchecked")

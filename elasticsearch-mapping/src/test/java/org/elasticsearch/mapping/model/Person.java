@@ -21,6 +21,8 @@ public class Person {
     @NestedObject
     private Address address;
 
+    private Address alternateAddress;
+
     @NumberField(index = IndexType.not_analyzed, includeInAll = false)
     private long alienScore = 1;
 
@@ -62,5 +64,13 @@ public class Person {
 
     public void setAddress(Address address) {
         this.address = address;
+    }
+
+    public Address getAlternateAddress() {
+        return alternateAddress;
+    }
+
+    public void setAlternateAddress(Address alternateAddress) {
+        this.alternateAddress = alternateAddress;
     }
 }

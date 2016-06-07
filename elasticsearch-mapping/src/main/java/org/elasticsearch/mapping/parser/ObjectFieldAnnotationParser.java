@@ -34,12 +34,15 @@ public class ObjectFieldAnnotationParser implements IPropertyAnnotationParser<Ob
                     + "." + indexable.getName() + "> type is already set to <" + fieldDefinition.get("type") + ">");
         }
 
+        Class<?> objectClass = annotation == null ? ObjectField.class : annotation.objectClass();
+        Boolean enabled = annotation == null ? true : annotation.enabled();
+
         fieldDefinition.put("type", "object");
-        fieldDefinition.put("enabled", annotation.enabled());
-        if (annotation.enabled()) {
+        fieldDefinition.put("enabled", enabled);
+        if (enabled) {
             Map<String, SourceFetchContext> fetchContext = Maps.newHashMap();
             // nested types can provide replacement class to be managed. This can be usefull to override map default type for example.
-            Class<?> replaceClass = annotation.objectClass().equals(ObjectField.class) ? indexable.getType() : annotation.objectClass();
+            Class<?> replaceClass = objectClass.equals(ObjectField.class) ? indexable.getType() : objectClass;
             try {
                 this.fieldsMappingBuilder.parseFieldMappings(replaceClass, fieldDefinition, facets, filters, fetchContext, indexable.getName() + ".");
             } catch (IntrospectionException e) {
