@@ -4,11 +4,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.elasticsearch.annotation.StringField;
-import org.elasticsearch.mapping.IndexOptions;
-import org.elasticsearch.mapping.Indexable;
-import org.elasticsearch.mapping.MappingException;
-import org.elasticsearch.mapping.NormEnabled;
-import org.elasticsearch.mapping.NormLoading;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.mapping.*;
 
 /**
  * Parse a {@link StringField} annotation.
@@ -16,13 +14,14 @@ import org.elasticsearch.mapping.NormLoading;
  * @author luc boutier
  */
 public class StringFieldAnnotationParser implements IPropertyAnnotationParser<StringField> {
+    private static final ESLogger LOGGER = Loggers.getLogger(MappingBuilder.class);
+
     public void parseAnnotation(StringField annotation, Map<String, Object> fieldDefinition, String pathPrefix,
             Indexable indexable) {
         if (fieldDefinition.get("type") != null) {
-            throw new MappingException(
-                    "A field cannot have more than one Elastic Search type. Parsing StringField on <"
-                            + indexable.getDeclaringClassName() + "." + indexable.getName()
-                            + "> type is already set to <" + fieldDefinition.get("type") + ">");
+            LOGGER.info("Overriding mapping for field {} for class {} was defined as type {}", indexable.getName(), indexable.getDeclaringClassName(),
+                    fieldDefinition.get("type"));
+            fieldDefinition.clear();
         }
 
         fieldDefinition.put("type", "string");

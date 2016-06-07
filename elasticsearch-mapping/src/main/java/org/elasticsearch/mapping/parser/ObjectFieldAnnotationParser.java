@@ -14,7 +14,6 @@ import org.elasticsearch.mapping.*;
  * Parse a {@link org.elasticsearch.annotation.ObjectField} to enrich the mapping
  */
 public class ObjectFieldAnnotationParser implements IPropertyAnnotationParser<ObjectField> {
-
     private static final ESLogger LOGGER = Loggers.getLogger(MappingBuilder.class);
 
     private final FieldsMappingBuilder fieldsMappingBuilder;
@@ -30,8 +29,9 @@ public class ObjectFieldAnnotationParser implements IPropertyAnnotationParser<Ob
     @Override
     public void parseAnnotation(ObjectField annotation, Map<String, Object> fieldDefinition, String pathPrefix, Indexable indexable) {
         if (fieldDefinition.get("type") != null) {
-            throw new MappingException("A field cannot have more than one Elastic Search type. Parsing ComplexObject on <" + indexable.getDeclaringClassName()
-                    + "." + indexable.getName() + "> type is already set to <" + fieldDefinition.get("type") + ">");
+            LOGGER.info("Overriding mapping for field {} for class {} was defined as type {}", indexable.getName(), indexable.getDeclaringClassName(),
+                    fieldDefinition.get("type"));
+            fieldDefinition.clear();
         }
 
         Class<?> objectClass = annotation == null ? ObjectField.class : annotation.objectClass();

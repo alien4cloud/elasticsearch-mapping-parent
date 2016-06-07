@@ -3,7 +3,10 @@ package org.elasticsearch.mapping.parser;
 import java.util.Map;
 
 import org.elasticsearch.annotation.DateField;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.mapping.Indexable;
+import org.elasticsearch.mapping.MappingBuilder;
 import org.elasticsearch.mapping.MappingException;
 
 /**
@@ -12,13 +15,13 @@ import org.elasticsearch.mapping.MappingException;
  * @author luc boutier
  */
 public class DateFieldAnnotationParser implements IPropertyAnnotationParser<DateField> {
-    public void parseAnnotation(DateField annotation, Map<String, Object> fieldDefinition, String pathPrefix,
-            Indexable indexable) {
+    private static final ESLogger LOGGER = Loggers.getLogger(MappingBuilder.class);
+
+    public void parseAnnotation(DateField annotation, Map<String, Object> fieldDefinition, String pathPrefix, Indexable indexable) {
         if (fieldDefinition.get("type") != null) {
-            throw new MappingException(
-                    "A field cannot have more than one Elastic Search type. Parsing StringField on <"
-                            + indexable.getDeclaringClassName() + "." + indexable.getName()
-                            + "> type is already set to <" + fieldDefinition.get("type") + ">");
+            LOGGER.info("Overriding mapping for field {} for class {} was defined as type {}", indexable.getName(), indexable.getDeclaringClassName(),
+                    fieldDefinition.get("type"));
+            fieldDefinition.clear();
         }
 
         fieldDefinition.put("type", "date");
