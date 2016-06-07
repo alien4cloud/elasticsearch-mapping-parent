@@ -74,14 +74,19 @@ public class FieldsMappingBuilder {
         processFacetAnnotation(facetFields, filteredFields, esFieldName, indexable);
 
         // process the fields
-        if (ClassUtils.isPrimitiveOrWrapper(indexable.getType()) || indexable.getType() == String.class) {
+        if (ClassUtils.isPrimitiveOrWrapper(indexable.getType()) || indexable.getType() == String.class || indexable.getType() == Date.class) {
             processStringOrPrimitive(clazz, propertiesDefinitionMap, pathPrefix, indexable);
+        } else if (indexable.getType().isEnum()) {
+            StringField annotation = indexable.getAnnotation(StringField.class);
+            if (annotation != null) {
+                processStringOrPrimitive(clazz, propertiesDefinitionMap, pathPrefix, indexable);
+            }
         } else {
             Class<?> arrayType = indexable.getComponentType();
             // mapping of a complex field
             if (arrayType != null) {
                 // process the array type.
-                if (ClassUtils.isPrimitiveOrWrapper(arrayType) || arrayType == String.class) {
+                if (ClassUtils.isPrimitiveOrWrapper(arrayType) || arrayType == String.class || indexable.getType() == Date.class) {
                     processStringOrPrimitive(clazz, propertiesDefinitionMap, pathPrefix, indexable);
                 } else if (arrayType.isEnum()) {
                     // if this is an enum and there is a String

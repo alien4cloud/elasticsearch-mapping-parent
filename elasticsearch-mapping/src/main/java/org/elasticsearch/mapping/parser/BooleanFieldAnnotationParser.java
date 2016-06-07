@@ -7,7 +7,6 @@ import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.mapping.Indexable;
 import org.elasticsearch.mapping.MappingBuilder;
-import org.elasticsearch.mapping.MappingException;
 
 /**
  * Parse a {@link BooleanField} annotation.
