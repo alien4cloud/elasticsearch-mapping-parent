@@ -24,7 +24,7 @@
             <artifactId>spring-context</artifactId>
         </dependency>
         <dependency>
-            <groupId>fr.lucboutier.elasticsearch</groupId>
+            <groupId>org.alien4cloud</groupId>
             <artifactId>elasticsearch-annotations</artifactId>
             <version>${project.version}</version>
         </dependency>
