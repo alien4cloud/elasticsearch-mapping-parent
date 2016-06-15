@@ -6,6 +6,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.Collection;
+import java.util.Map;
 
 public class Indexable {
 
@@ -54,10 +55,16 @@ public class Indexable {
     }
 
     public Class<?> getComponentType() {
+        return getComponentType(0);
+    }
+
+    public Class<?> getComponentType(int index) {
         Class<?> type = getType();
         if (type.isArray()) {
-            return type.getComponentType();
-        } else if (Collection.class.isAssignableFrom(type)) {
+            if(index == 0) {
+                return type.getComponentType();
+            }
+        } else if (Collection.class.isAssignableFrom(type) || Map.class.isAssignableFrom(type)) {
             ParameterizedType pt = null;
             if (field != null && field.getGenericType() instanceof ParameterizedType) {
                 pt = (ParameterizedType) field.getGenericType();
@@ -67,15 +74,14 @@ public class Indexable {
                 return null;
             }
             Type[] types = pt.getActualTypeArguments();
-            if (types.length > 0) {
-                Class<?> valueClass = (Class<?>) types[0];
-                return valueClass;
-            } else {
-                return null;
+            if (types.length > index) {
+                if (types[index] instanceof Class) {
+                    Class<?> valueClass = (Class<?>) types[index];
+                    return valueClass;
+                }
             }
-        } else {
-            return null;
         }
+        return null;
     }
 
     public <T extends Annotation> T getAnnotation(Class<T> annotationClass) {

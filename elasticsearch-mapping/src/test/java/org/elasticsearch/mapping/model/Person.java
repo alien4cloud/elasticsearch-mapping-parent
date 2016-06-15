@@ -4,6 +4,8 @@ import org.elasticsearch.annotation.*;
 import org.elasticsearch.annotation.query.TermFilter;
 import org.elasticsearch.mapping.IndexType;
 
+import java.util.Map;
+
 /**
  * 
  * @author luc boutier
@@ -22,6 +24,10 @@ public class Person {
     private Address address;
 
     private Address alternateAddress;
+
+    // index this by specifying key and value as fields, do not index the key.
+    @MapKeyValue(indexType = IndexType.no)
+    private Map<String, Address> addressMap;
 
     @NumberField(index = IndexType.not_analyzed, includeInAll = false)
     private long alienScore = 1;
@@ -72,5 +78,13 @@ public class Person {
 
     public void setAlternateAddress(Address alternateAddress) {
         this.alternateAddress = alternateAddress;
+    }
+
+    public Map<String, Address> getAddressMap() {
+        return addressMap;
+    }
+
+    public void setAddressMap(Map<String, Address> addressMap) {
+        this.addressMap = addressMap;
     }
 }

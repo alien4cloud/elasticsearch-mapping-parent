@@ -10,6 +10,7 @@ import java.util.*;
 
 import org.elasticsearch.annotation.*;
 import org.elasticsearch.annotation.query.*;
+import org.elasticsearch.common.collect.Maps;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.mapping.parser.*;
@@ -81,26 +82,41 @@ public class FieldsMappingBuilder {
             if (annotation != null) {
                 processStringOrPrimitive(clazz, propertiesDefinitionMap, pathPrefix, indexable);
             }
+        } else if (Map.class.isAssignableFrom(indexable.getType())) {
+            MapKeyValue annotation = indexable.getAnnotation(MapKeyValue.class);
+            if (annotation != null) {
+                // Create an object mapping with key and value
+                processFieldAnnotation(MapKeyValue.class, new MapKeyValueAnnotationParser(this, filteredFields, facetFields), propertiesDefinitionMap,
+                        pathPrefix, indexable);
+            } else {
+                processComplexOrArray(clazz, facetFields, filteredFields, pathPrefix, propertiesDefinitionMap, indexable);
+            }
         } else {
-            Class<?> arrayType = indexable.getComponentType();
-            // mapping of a complex field
-            if (arrayType != null) {
-                // process the array type.
-                if (ClassUtils.isPrimitiveOrWrapper(arrayType) || arrayType == String.class || indexable.getType() == Date.class) {
+            processComplexOrArray(clazz, facetFields, filteredFields, pathPrefix, propertiesDefinitionMap, indexable);
+        }
+    }
+
+    private void processComplexOrArray(Class<?> clazz, List<IFacetBuilderHelper> facetFields, List<IFilterBuilderHelper> filteredFields, String pathPrefix,
+            Map<String, Object> propertiesDefinitionMap, Indexable indexable) {
+        Class<?> arrayType = indexable.getComponentType();
+        Class<?> mapValueType = indexable.getComponentType(1);
+        // mapping of a complex field
+        if (arrayType != null && mapValueType == null) {
+            // process the array type.
+            if (ClassUtils.isPrimitiveOrWrapper(arrayType) || arrayType == String.class || indexable.getType() == Date.class) {
+                processStringOrPrimitive(clazz, propertiesDefinitionMap, pathPrefix, indexable);
+            } else if (arrayType.isEnum()) {
+                // if this is an enum and there is a String
+                StringField annotation = indexable.getAnnotation(StringField.class);
+                if (annotation != null) {
                     processStringOrPrimitive(clazz, propertiesDefinitionMap, pathPrefix, indexable);
-                } else if (arrayType.isEnum()) {
-                    // if this is an enum and there is a String
-                    StringField annotation = indexable.getAnnotation(StringField.class);
-                    if (annotation != null) {
-                        processStringOrPrimitive(clazz, propertiesDefinitionMap, pathPrefix, indexable);
-                    }
-                } else {
-                    processComplexType(clazz, propertiesDefinitionMap, pathPrefix, indexable, filteredFields, facetFields);
                 }
             } else {
-                // process the type
                 processComplexType(clazz, propertiesDefinitionMap, pathPrefix, indexable, filteredFields, facetFields);
             }
+        } else {
+            // process the type
+            processComplexType(clazz, propertiesDefinitionMap, pathPrefix, indexable, filteredFields, facetFields);
         }
     }
 
