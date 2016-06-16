@@ -98,10 +98,9 @@ public class FieldsMappingBuilder {
 
     private void processComplexOrArray(Class<?> clazz, List<IFacetBuilderHelper> facetFields, List<IFilterBuilderHelper> filteredFields, String pathPrefix,
             Map<String, Object> propertiesDefinitionMap, Indexable indexable) {
-        Class<?> arrayType = indexable.getComponentType();
-        Class<?> mapValueType = indexable.getComponentType(1);
         // mapping of a complex field
-        if (arrayType != null && mapValueType == null) {
+        if (indexable.isArrayOrCollection()) {
+            Class<?> arrayType = indexable.getComponentType();
             // process the array type.
             if (ClassUtils.isPrimitiveOrWrapper(arrayType) || arrayType == String.class || indexable.getType() == Date.class) {
                 processStringOrPrimitive(clazz, propertiesDefinitionMap, pathPrefix, indexable);
@@ -319,19 +318,22 @@ public class FieldsMappingBuilder {
             List<IFilterBuilderHelper> filters, List<IFacetBuilderHelper> facets) {
         NestedObjectFieldAnnotationParser nested = new NestedObjectFieldAnnotationParser(this, filters, facets);
         processFieldAnnotation(NestedObject.class, nested, propertiesDefinitionMap, pathPrefix, indexable);
-        ObjectFieldAnnotationParser objectFieldAnnotationParser = new ObjectFieldAnnotationParser(this, filters, facets);
-        processFieldAnnotation(ObjectField.class, objectFieldAnnotationParser, propertiesDefinitionMap, pathPrefix, indexable);
-        // by default we consider the complex object as an object mapping and process recursive mapping of every field just as ES would process based on dynamic
-        // mapping
 
         if (propertiesDefinitionMap.get(indexable.getName()) == null) {
-            // Define mapping as object
-            Map<String, Object> fieldDefinition = (Map<String, Object>) propertiesDefinitionMap.get(indexable.getName());
-            if (fieldDefinition == null) {
-                fieldDefinition = new HashMap<String, Object>();
-                propertiesDefinitionMap.put(indexable.getName(), fieldDefinition);
+            ObjectFieldAnnotationParser objectFieldAnnotationParser = new ObjectFieldAnnotationParser(this, filters, facets);
+            processFieldAnnotation(ObjectField.class, objectFieldAnnotationParser, propertiesDefinitionMap, pathPrefix, indexable);
+            // by default we consider the complex object as an object mapping and process recursive mapping of every field just as ES would process based on
+            // dynamic
+            // mapping
+            if (propertiesDefinitionMap.get(indexable.getName()) == null) {
+                // Define mapping as object
+                Map<String, Object> fieldDefinition = (Map<String, Object>) propertiesDefinitionMap.get(indexable.getName());
+                if (fieldDefinition == null) {
+                    fieldDefinition = new HashMap<String, Object>();
+                    propertiesDefinitionMap.put(indexable.getName(), fieldDefinition);
+                }
+                objectFieldAnnotationParser.parseAnnotation(null, fieldDefinition, pathPrefix, indexable);
             }
-            objectFieldAnnotationParser.parseAnnotation(null, fieldDefinition, pathPrefix, indexable);
         }
     }
 

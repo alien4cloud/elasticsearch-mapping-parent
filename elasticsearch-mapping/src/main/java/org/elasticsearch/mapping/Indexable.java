@@ -58,6 +58,11 @@ public class Indexable {
         return getComponentType(0);
     }
 
+    public boolean isArrayOrCollection() {
+        Class<?> type = getType();
+        return type.isArray() || Collection.class.isAssignableFrom(type);
+    }
+
     public Class<?> getComponentType(int index) {
         Class<?> type = getType();
         if (type.isArray()) {
