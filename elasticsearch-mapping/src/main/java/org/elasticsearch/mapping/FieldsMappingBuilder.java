@@ -211,6 +211,17 @@ public class FieldsMappingBuilder {
         TermFilter termFilter = indexable.getAnnotation(TermFilter.class);
         if (termFilter != null) {
             String[] paths = termFilter.paths();
+            if (termFilter.pathGenerator() != null) {
+                // create an instance of the generator
+                try {
+                    IPathGenerator generator = termFilter.pathGenerator().newInstance();
+                    paths = generator.getPaths(paths);
+                } catch (InstantiationException e) {
+                    e.printStackTrace(); // TODO better exception handling
+                } catch (IllegalAccessException e) {
+                    e.printStackTrace(); // TODO better exception handling
+                }
+            }
             for (String path : paths) {
                 path = path.trim();
                 boolean isAnalyzed = isAnalyzed(indexable);
