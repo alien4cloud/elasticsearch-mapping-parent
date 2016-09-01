@@ -22,6 +22,10 @@ import org.elasticsearch.index.query.FilterBuilders;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.index.query.functionscore.ScoreFunctionBuilders;
+import org.elasticsearch.search.aggregations.AggregationBuilder;
+import org.elasticsearch.search.aggregations.AggregationBuilders;
+import org.elasticsearch.search.aggregations.bucket.filters.FiltersAggregationBuilder;
+import org.elasticsearch.search.aggregations.metrics.MetricsAggregationBuilder;
 import org.elasticsearch.search.facet.FacetBuilder;
 import org.elasticsearch.search.sort.FieldSortBuilder;
 import org.elasticsearch.search.sort.SortBuilders;
@@ -493,20 +497,33 @@ public class QueryHelper {
             }
             if (facets) {
                 if (filters == null) {
-                    addFacets(new HashMap<String, String[]>(), clazz.getName(), searchRequestBuilder, filter);
+                    addAggregations(new HashMap<String, String[]>(), clazz.getName(), searchRequestBuilder, filter);
                 } else {
-                    addFacets(filters, clazz.getName(), searchRequestBuilder, filter);
+                    addAggregations(filters, clazz.getName(), searchRequestBuilder, filter);
                 }
             }
         }
 
-        private void addFacets(Map<String, String[]> filters, String className, SearchRequestBuilder searchRequestBuilder, FilterBuilder filter) {
-            final List<FacetBuilder> facets = buildFacets(className, filters.keySet());
-            for (final FacetBuilder facet : facets) {
-                if (filter != null) {
-                    facet.facetFilter(filter);
+        private void addAggregations(Map<String, String[]> filters, String className, SearchRequestBuilder searchRequestBuilder, FilterBuilder filter) {
+            final List<AggregationBuilder> aggregations = buildAggregations(className, filters.keySet());
+
+            if (aggregations.size() > 0) {
+                AggregationBuilder aggregationBuilder;
+
+                if (filter == null){
+                    // In order to gather all unfiltered aggregations faceted results under one single parent aggregation, a Global Aggregation is used
+                    aggregationBuilder = AggregationBuilders.global("global_aggregation");
                 }
-                searchRequestBuilder.addFacet(facet);
+                else {
+                    // To include filters inside filtered aggregation results
+                    aggregationBuilder = AggregationBuilders.filters("filter_aggregation").filter(filter);
+                }
+
+                for (AggregationBuilder aggregation : aggregations) {
+                    aggregationBuilder.subAggregation(aggregation);
+                }
+
+                searchRequestBuilder.addAggregation(aggregationBuilder);
             }
         }
 
@@ -566,7 +583,7 @@ public class QueryHelper {
 
         /**
          * Create a list of facets for the given type.
-         * 
+         *
          * @param className The name of the class for which to create facets.
          * @param filters The set of facets to exclude from the facet creation.
          * @return a {@link List} of {@link FacetBuilder facet builders}.
@@ -582,9 +599,33 @@ public class QueryHelper {
             for (IFacetBuilderHelper facetBuilderHelper : facetBuilderHelpers) {
                 if (filters == null || !filters.contains(facetBuilderHelper.getEsFieldName())) {
                     facetBuilders.add(facetBuilderHelper.buildFacet());
+
                 }
             }
             return facetBuilders;
+        }
+
+        /**
+         * Create a list of aggregations counts for the given type.
+         *
+         * @param className The name of the class for which to create facets.
+         * @param filters The set of aggregations to exclude from the facet creation.
+         * @return a {@link List} of {@link AggregationBuilder aggregation builders}.
+         */
+        private List<AggregationBuilder> buildAggregations(String className, Set<String> filters) {
+            final List<AggregationBuilder> aggregationBuilders = new ArrayList<AggregationBuilder>();
+            List<IFacetBuilderHelper> facetBuilderHelpers = mappingBuilder.getFacets(className);
+
+            if(facetBuilderHelpers == null || facetBuilderHelpers.size() < 1 )
+                return aggregationBuilders;
+
+            for (IFacetBuilderHelper facetBuilderHelper : facetBuilderHelpers) {
+                if (filters == null || !filters.contains(facetBuilderHelper.getEsFieldName()))
+                    aggregationBuilders.add(AggregationBuilders.terms(facetBuilderHelper.getEsFieldName()).field(facetBuilderHelper.getEsFieldName()));
+            }
+
+            return aggregationBuilders;
+
         }
     }
 }
