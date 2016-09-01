@@ -24,8 +24,6 @@ import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.index.query.functionscore.ScoreFunctionBuilders;
 import org.elasticsearch.search.aggregations.AggregationBuilder;
 import org.elasticsearch.search.aggregations.AggregationBuilders;
-import org.elasticsearch.search.aggregations.bucket.filters.FiltersAggregationBuilder;
-import org.elasticsearch.search.aggregations.metrics.MetricsAggregationBuilder;
 import org.elasticsearch.search.facet.FacetBuilder;
 import org.elasticsearch.search.sort.FieldSortBuilder;
 import org.elasticsearch.search.sort.SortBuilders;
