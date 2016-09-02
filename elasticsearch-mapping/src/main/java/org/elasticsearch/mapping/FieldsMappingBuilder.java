@@ -10,7 +10,6 @@ import java.util.*;
 
 import org.elasticsearch.annotation.*;
 import org.elasticsearch.annotation.query.*;
-import org.elasticsearch.common.collect.Maps;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.mapping.parser.*;
@@ -268,7 +267,7 @@ public class FieldsMappingBuilder {
                 String nestedPath = indexable.getAnnotation(NestedObject.class) == null ? null : esFieldName;
                 String filterPath = getFilterPath(path, esFieldName);
 
-                IFacetBuilderHelper facetBuilderHelper = new TermsFacetBuilderHelper(isAnalyzed, nestedPath, filterPath, termsFacet);
+                IFacetBuilderHelper facetBuilderHelper = new TermsAggregationBuilderHelper(isAnalyzed, nestedPath, filterPath, termsFacet);
                 classFacets.add(facetBuilderHelper);
                 if (classFilters.contains(facetBuilderHelper)) {
                     classFilters.remove(facetBuilderHelper);
@@ -280,7 +279,7 @@ public class FieldsMappingBuilder {
         }
         RangeFacet rangeFacet = indexable.getAnnotation(RangeFacet.class);
         if (rangeFacet != null) {
-            IFacetBuilderHelper facetBuilderHelper = new RangeFacetBuilderHelper(null, esFieldName, rangeFacet);
+            IFacetBuilderHelper facetBuilderHelper = new RangeAggregationBuilderHelper(null, esFieldName, rangeFacet);
             classFacets.add(facetBuilderHelper);
             if (classFilters.contains(facetBuilderHelper)) {
                 classFilters.remove(facetBuilderHelper);

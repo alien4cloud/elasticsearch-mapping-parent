@@ -1,12 +1,10 @@
 package org.elasticsearch.mapping;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
+
 import javax.annotation.Resource;
+
 import org.elasticsearch.action.count.CountRequestBuilder;
 import org.elasticsearch.action.count.CountResponse;
 import org.elasticsearch.action.search.SearchRequestBuilder;
@@ -16,15 +14,10 @@ import org.elasticsearch.common.collect.Lists;
 import org.elasticsearch.common.collect.Maps;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.index.query.BoolQueryBuilder;
-import org.elasticsearch.index.query.FilterBuilder;
-import org.elasticsearch.index.query.FilterBuilders;
-import org.elasticsearch.index.query.QueryBuilder;
-import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.index.query.*;
 import org.elasticsearch.index.query.functionscore.ScoreFunctionBuilders;
 import org.elasticsearch.search.aggregations.AggregationBuilder;
 import org.elasticsearch.search.aggregations.AggregationBuilders;
-import org.elasticsearch.search.facet.FacetBuilder;
 import org.elasticsearch.search.sort.FieldSortBuilder;
 import org.elasticsearch.search.sort.SortBuilders;
 import org.elasticsearch.search.sort.SortOrder;
@@ -508,11 +501,10 @@ public class QueryHelper {
             if (aggregations.size() > 0) {
                 AggregationBuilder aggregationBuilder;
 
-                if (filter == null){
+                if (filter == null) {
                     // In order to gather all unfiltered aggregations faceted results under one single parent aggregation, a Global Aggregation is used
                     aggregationBuilder = AggregationBuilders.global("global_aggregation");
-                }
-                else {
+                } else {
                     // To include filters inside filtered aggregation results
                     aggregationBuilder = AggregationBuilders.filters("filter_aggregation").filter(filter);
                 }
@@ -580,30 +572,6 @@ public class QueryHelper {
         }
 
         /**
-         * Create a list of facets for the given type.
-         *
-         * @param className The name of the class for which to create facets.
-         * @param filters The set of facets to exclude from the facet creation.
-         * @return a {@link List} of {@link FacetBuilder facet builders}.
-         */
-        private List<FacetBuilder> buildFacets(String className, Set<String> filters) {
-            final List<FacetBuilder> facetBuilders = new ArrayList<FacetBuilder>();
-
-            List<IFacetBuilderHelper> facetBuilderHelpers = mappingBuilder.getFacets(className);
-            if (facetBuilderHelpers == null) {
-                return facetBuilders;
-            }
-
-            for (IFacetBuilderHelper facetBuilderHelper : facetBuilderHelpers) {
-                if (filters == null || !filters.contains(facetBuilderHelper.getEsFieldName())) {
-                    facetBuilders.add(facetBuilderHelper.buildFacet());
-
-                }
-            }
-            return facetBuilders;
-        }
-
-        /**
          * Create a list of aggregations counts for the given type.
          *
          * @param className The name of the class for which to create facets.
@@ -614,16 +582,16 @@ public class QueryHelper {
             final List<AggregationBuilder> aggregationBuilders = new ArrayList<AggregationBuilder>();
             List<IFacetBuilderHelper> facetBuilderHelpers = mappingBuilder.getFacets(className);
 
-            if(facetBuilderHelpers == null || facetBuilderHelpers.size() < 1 )
+            if (facetBuilderHelpers == null || facetBuilderHelpers.size() < 1)
                 return aggregationBuilders;
 
             for (IFacetBuilderHelper facetBuilderHelper : facetBuilderHelpers) {
-                if (filters == null || !filters.contains(facetBuilderHelper.getEsFieldName()))
-                    aggregationBuilders.add(AggregationBuilders.terms(facetBuilderHelper.getEsFieldName()).field(facetBuilderHelper.getEsFieldName()));
+                if (filters == null || !filters.contains(facetBuilderHelper.getEsFieldName())) {
+                    aggregationBuilders.add(facetBuilderHelper.buildFacet());
+                }
             }
 
             return aggregationBuilders;
-
         }
     }
 }

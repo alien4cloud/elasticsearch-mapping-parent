@@ -1,21 +1,21 @@
 package org.elasticsearch.mapping;
 
 import org.elasticsearch.annotation.query.TermsFacet;
-import org.elasticsearch.search.facet.FacetBuilder;
-import org.elasticsearch.search.facet.FacetBuilders;
+import org.elasticsearch.search.aggregations.AggregationBuilder;
+import org.elasticsearch.search.aggregations.AggregationBuilders;
+import org.elasticsearch.search.aggregations.bucket.terms.TermsBuilder;
 import org.elasticsearch.search.facet.terms.TermsFacet.ComparatorType;
-import org.elasticsearch.search.facet.terms.TermsFacetBuilder;
 
 /**
  * Build a term facet.
  * 
  * @author luc boutier
  */
-public class TermsFacetBuilderHelper extends TermsFilterBuilderHelper implements IFacetBuilderHelper {
+public class TermsAggregationBuilderHelper extends TermsFilterBuilderHelper implements IFacetBuilderHelper {
     private final int size;
     private final boolean allTerms;
     private final ComparatorType comparatorType;
-    private final Object[] exclude;
+    private final String[] exclude;
 
     /**
      * Initialize from the configuration annotation.
@@ -25,7 +25,7 @@ public class TermsFacetBuilderHelper extends TermsFilterBuilderHelper implements
      * @param esFieldName The name of the field on which to apply the filter.
      * @param termsFacet the configuration annotation.
      */
-    public TermsFacetBuilderHelper(final boolean isAnalyzed, final String nestedPath, final String esFieldName, TermsFacet termsFacet) {
+    public TermsAggregationBuilderHelper(final boolean isAnalyzed, final String nestedPath, final String esFieldName, TermsFacet termsFacet) {
         super(isAnalyzed, nestedPath, esFieldName);
         this.size = termsFacet.size();
         this.allTerms = termsFacet.allTerms();
@@ -34,12 +34,11 @@ public class TermsFacetBuilderHelper extends TermsFilterBuilderHelper implements
     }
 
     @Override
-    public FacetBuilder buildFacet() {
-        TermsFacetBuilder termsFacetBuilder = FacetBuilders.termsFacet(getEsFieldName()).field(getEsFieldName()).allTerms(allTerms).order(comparatorType)
-                .size(size);
-        if (exclude.length > 0) {
-            termsFacetBuilder.exclude(exclude);
+    public AggregationBuilder buildFacet() {
+        TermsBuilder termsBuilder = AggregationBuilders.terms(getEsFieldName()).field(getEsFieldName()).size(size);
+        if (exclude != null) {
+            termsBuilder.exclude(exclude);
         }
-        return termsFacetBuilder;
+        return termsBuilder;
     }
 }
