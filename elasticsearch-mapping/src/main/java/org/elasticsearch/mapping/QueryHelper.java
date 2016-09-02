@@ -488,26 +488,18 @@ public class QueryHelper {
             }
             if (facets) {
                 if (filters == null) {
-                    addAggregations(new HashMap<String, String[]>(), clazz.getName(), searchRequestBuilder, filter);
+                    addAggregations(new HashMap<String, String[]>(), clazz.getName(), searchRequestBuilder);
                 } else {
-                    addAggregations(filters, clazz.getName(), searchRequestBuilder, filter);
+                    addAggregations(filters, clazz.getName(), searchRequestBuilder);
                 }
             }
         }
 
-        private void addAggregations(Map<String, String[]> filters, String className, SearchRequestBuilder searchRequestBuilder, FilterBuilder filter) {
+        private void addAggregations(Map<String, String[]> filters, String className, SearchRequestBuilder searchRequestBuilder) {
             final List<AggregationBuilder> aggregations = buildAggregations(className, filters.keySet());
 
             if (aggregations.size() > 0) {
-                AggregationBuilder aggregationBuilder;
-
-                if (filter == null) {
-                    // In order to gather all unfiltered aggregations faceted results under one single parent aggregation, a Global Aggregation is used
-                    aggregationBuilder = AggregationBuilders.global("global_aggregation");
-                } else {
-                    // To include filters inside filtered aggregation results
-                    aggregationBuilder = AggregationBuilders.filters("filter_aggregation").filter(filter);
-                }
+                AggregationBuilder aggregationBuilder = AggregationBuilders.global("facet_aggregation");
 
                 for (AggregationBuilder aggregation : aggregations) {
                     aggregationBuilder.subAggregation(aggregation);
