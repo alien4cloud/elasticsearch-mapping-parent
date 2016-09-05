@@ -36,9 +36,10 @@ public class TermsAggregationBuilderHelper extends TermsFilterBuilderHelper impl
     @Override
     public AggregationBuilder buildFacet() {
         TermsBuilder termsBuilder = AggregationBuilders.terms(getEsFieldName()).field(getEsFieldName()).size(size);
-        if (exclude != null) {
-            termsBuilder.exclude(exclude);
-        }
+        // Elastic search has a bug with excludes so don't use it. https://github.com/elastic/elasticsearch/issues/18575
+        // if (exclude != null) {
+        // termsBuilder.exclude(exclude);
+        // }
         return termsBuilder;
     }
 }

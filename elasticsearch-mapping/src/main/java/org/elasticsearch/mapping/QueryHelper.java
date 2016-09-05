@@ -12,6 +12,7 @@ import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.SearchType;
 import org.elasticsearch.common.collect.Lists;
 import org.elasticsearch.common.collect.Maps;
+import org.elasticsearch.common.collect.Sets;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.index.query.*;
@@ -396,8 +397,9 @@ public class QueryHelper {
             searchRequestBuilder.setTypes(getTypes());
             if (classes != null && classes.length > 0) {
                 addFetchContext(searchRequestBuilder);
+                Set<String> aggIds = Sets.newHashSet();
                 for (Class<?> clazz : classes) {
-                    addFilters(searchRequestBuilder, customFilter, clazz);
+                    addFilters(searchRequestBuilder, customFilter, clazz, aggIds);
                 }
             }
             if (fieldSort != null) {
@@ -473,7 +475,7 @@ public class QueryHelper {
             searchRequestBuilder.setFetchSource(inc, exc);
         }
 
-        private void addFilters(SearchRequestBuilder searchRequestBuilder, FilterBuilder customFilter, Class<?> clazz) {
+        private void addFilters(SearchRequestBuilder searchRequestBuilder, FilterBuilder customFilter, Class<?> clazz, Set<String> aggIds) {
             if (clazz == null) {
                 return;
             }
@@ -488,24 +490,20 @@ public class QueryHelper {
             }
             if (facets) {
                 if (filters == null) {
-                    addAggregations(new HashMap<String, String[]>(), clazz.getName(), searchRequestBuilder);
+                    addAggregations(new HashMap<String, String[]>(), clazz.getName(), searchRequestBuilder, aggIds);
                 } else {
-                    addAggregations(filters, clazz.getName(), searchRequestBuilder);
+                    addAggregations(filters, clazz.getName(), searchRequestBuilder, aggIds);
                 }
             }
         }
 
-        private void addAggregations(Map<String, String[]> filters, String className, SearchRequestBuilder searchRequestBuilder) {
+        private void addAggregations(Map<String, String[]> filters, String className, SearchRequestBuilder searchRequestBuilder, Set<String> aggIds) {
             final List<AggregationBuilder> aggregations = buildAggregations(className, filters.keySet());
-
-            if (aggregations.size() > 0) {
-                AggregationBuilder aggregationBuilder = AggregationBuilders.global("facet_aggregation");
-
-                for (AggregationBuilder aggregation : aggregations) {
-                    aggregationBuilder.subAggregation(aggregation);
+            for (AggregationBuilder aggregation : aggregations) {
+                if (!aggIds.contains(aggregation.getName())) {
+                    aggIds.add(aggregation.getName());
+                    searchRequestBuilder.addAggregation(aggregation);
                 }
-
-                searchRequestBuilder.addAggregation(aggregationBuilder);
             }
         }
 
@@ -574,8 +572,9 @@ public class QueryHelper {
             final List<AggregationBuilder> aggregationBuilders = new ArrayList<AggregationBuilder>();
             List<IFacetBuilderHelper> facetBuilderHelpers = mappingBuilder.getFacets(className);
 
-            if (facetBuilderHelpers == null || facetBuilderHelpers.size() < 1)
+            if (facetBuilderHelpers == null || facetBuilderHelpers.size() < 1) {
                 return aggregationBuilders;
+            }
 
             for (IFacetBuilderHelper facetBuilderHelper : facetBuilderHelpers) {
                 if (filters == null || !filters.contains(facetBuilderHelper.getEsFieldName())) {
