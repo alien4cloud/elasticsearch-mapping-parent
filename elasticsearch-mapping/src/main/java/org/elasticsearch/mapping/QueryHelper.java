@@ -386,22 +386,26 @@ public class QueryHelper {
             SearchRequestBuilder searchRequestBuilder = esClient.getClient().prepareSearch(this.indices);
             searchRequestBuilder.setSearchType(SearchType.QUERY_THEN_FETCH);
             QueryBuilder query = queryBuilder;
+            if (functionScore != null) {
+                query = QueryBuilders.functionScoreQuery(query, ScoreFunctionBuilders.scriptFunction(functionScore));
+            }
             if (queryBuilderAdapter != null) {
                 query = queryBuilderAdapter.adapt(queryBuilder);
             }
-            if (functionScore == null) {
-                searchRequestBuilder.setQuery(query);
-            } else {
-                searchRequestBuilder.setQuery(QueryBuilders.functionScoreQuery(query, ScoreFunctionBuilders.scriptFunction(functionScore)));
-            }
-            searchRequestBuilder.setTypes(getTypes());
+            // create a filtered query with filters and add aggregations
             if (classes != null && classes.length > 0) {
+                QueryBuilder newQB = null;
                 addFetchContext(searchRequestBuilder);
                 Set<String> aggIds = Sets.newHashSet();
                 for (Class<?> clazz : classes) {
-                    addFilters(searchRequestBuilder, customFilter, clazz, aggIds);
+                    newQB = addFilters(query, searchRequestBuilder, customFilter, clazz, aggIds);
+                }
+                if (newQB != null) {
+                    query = newQB;
                 }
             }
+            searchRequestBuilder.setQuery(query);
+            searchRequestBuilder.setTypes(getTypes());
             if (fieldSort != null) {
                 FieldSortBuilder sortBuilder = SortBuilders.fieldSort(fieldSort);
                 if (fieldSortDesc) {
@@ -475,9 +479,10 @@ public class QueryHelper {
             searchRequestBuilder.setFetchSource(inc, exc);
         }
 
-        private void addFilters(SearchRequestBuilder searchRequestBuilder, FilterBuilder customFilter, Class<?> clazz, Set<String> aggIds) {
+        private QueryBuilder addFilters(QueryBuilder query, SearchRequestBuilder searchRequestBuilder, FilterBuilder customFilter, Class<?> clazz,
+                Set<String> aggIds) {
             if (clazz == null) {
-                return;
+                return query;
             }
             final List<FilterBuilder> esFilters = buildFilters(clazz.getName());
             if (customFilter != null) {
@@ -486,15 +491,18 @@ public class QueryHelper {
             FilterBuilder filter = null;
             if (esFilters.size() > 0) {
                 filter = getAndFilter(esFilters);
-                searchRequestBuilder.setPostFilter(filter);
+                if (filter != null) {
+                    query = QueryBuilders.filteredQuery(query, filter);
+                }
             }
             if (facets) {
                 if (filters == null) {
-                    addAggregations(new HashMap<String, String[]>(), clazz.getName(), searchRequestBuilder, aggIds);
+                    addAggregations(new HashMap(), clazz.getName(), searchRequestBuilder, aggIds);
                 } else {
                     addAggregations(filters, clazz.getName(), searchRequestBuilder, aggIds);
                 }
             }
+            return query;
         }
 
         private void addAggregations(Map<String, String[]> filters, String className, SearchRequestBuilder searchRequestBuilder, Set<String> aggIds) {
