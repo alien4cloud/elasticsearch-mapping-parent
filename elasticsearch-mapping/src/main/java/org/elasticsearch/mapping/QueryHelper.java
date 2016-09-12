@@ -332,7 +332,9 @@ public class QueryHelper {
             final List<FilterBuilder> esFilters = buildFilters(clazz.getName(), filters, filterStrategies);
             if (customFilters != null) {
                 for (FilterBuilder customFilter : customFilters) {
-                    esFilters.add(customFilter);
+                    if (customFilter != null) {
+                        esFilters.add(customFilter);
+                    }
                 }
 
             }
