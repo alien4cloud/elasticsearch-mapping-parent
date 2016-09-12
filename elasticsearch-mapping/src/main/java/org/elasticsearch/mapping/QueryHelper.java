@@ -2,6 +2,7 @@ package org.elasticsearch.mapping;
 
 import java.util.*;
 import java.util.Map.Entry;
+import java.util.function.Supplier;
 
 import javax.annotation.Resource;
 
@@ -15,10 +16,13 @@ import org.elasticsearch.common.collect.Maps;
 import org.elasticsearch.common.collect.Sets;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.index.query.*;
+import org.elasticsearch.index.query.FilterBuilder;
+import org.elasticsearch.index.query.FilterBuilders;
+import org.elasticsearch.index.query.QueryBuilder;
+import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.index.query.functionscore.ScoreFunctionBuilders;
 import org.elasticsearch.search.aggregations.AggregationBuilder;
-import org.elasticsearch.search.aggregations.AggregationBuilders;
+import org.elasticsearch.search.aggregations.metrics.tophits.TopHitsBuilder;
 import org.elasticsearch.search.sort.FieldSortBuilder;
 import org.elasticsearch.search.sort.SortBuilders;
 import org.elasticsearch.search.sort.SortOrder;
@@ -41,453 +45,301 @@ public class QueryHelper {
 
     private int maxExpansions;
 
-    /**
-     * Create a {@link SearchQueryHelperBuilder} to prepare a query on elastic search.
-     * 
-     * @param indices The indices for which to create a search request.
-     * @return a {@link SearchQueryHelperBuilder} instance.
-     */
-    public SearchQueryHelperBuilder buildSearchQuery(String... indices) {
-        return buildSearchQuery(indices, null);
-    }
-
-    /**
-     * Create a search builder for the given indices.
-     * 
-     * @param indices The indices for which to create a search request.
-     * @param searchQuery The search text if any, can be null if the request doesn't include a search text.
-     * @return a {@link SearchQueryHelperBuilder} instance.
-     */
-    public SearchQueryHelperBuilder buildSearchQuery(String[] indices, String searchQuery) {
-        return new SearchQueryHelperBuilder(indices, searchQuery);
-    }
-
-    /**
-     * Create a suggest query based search builder for the given indices.
-     * 
-     * @param indices The indices for which to create a search request.
-     * @param searchPrefix The value of the current prefix for suggestion.
-     * @param suggestFieldPath The path to the field for which to manage suggestion.
-     * @return a {@link SearchQueryHelperBuilder} instance.
-     */
-    public SearchQueryHelperBuilder buildSearchSuggestQuery(String[] indices, String searchPrefix, String suggestFieldPath) {
-        return new SearchQueryHelperBuilder(indices, searchPrefix, suggestFieldPath);
-    }
-
-    /**
-     * Create a count builder to prepare a query on elastic search.
-     * 
-     * @param indices The indices for which to create a count request.
-     * @return a {@link CountQueryHelperBuilder} instance.
-     */
-    public CountQueryHelperBuilder buildCountQuery(String... indices) {
-        return buildCountQuery(indices, null);
-    }
-
-    /**
-     * Create a count builder for the given indices.
-     * 
-     * @param indices The indices for which to create a count request.
-     * @param searchQuery The search text if any, can be null if the request doesn't include a search text.
-     * @return a {@link CountQueryHelperBuilder} instance.
-     */
-    public CountQueryHelperBuilder buildCountQuery(String[] indices, String searchQuery) {
-        return new CountQueryHelperBuilder(indices, searchQuery);
-    }
-
-    /**
-     * Create a suggest query based count builder for the given indices.
-     * 
-     * @param indices The indices for which to create a search request.
-     * @param searchPrefix The value of the current prefix for suggestion.
-     * @param suggestFieldPath The path to the field for which to manage suggestion.
-     * @return a {@link CountQueryHelperBuilder} instance.
-     */
-    public CountQueryHelperBuilder buildCountSuggestQuery(String[] indices, String searchPrefix, String suggestFieldPath) {
-        return new CountQueryHelperBuilder(indices, searchPrefix, suggestFieldPath);
-    }
-
     @Value("#{elasticsearchConfig['elasticSearch.prefix_max_expansions']}")
     public void setMaxExpansions(final int maxExpansions) {
         this.maxExpansions = maxExpansions;
     }
 
     /**
-     * Builder utility for search requests.
+     * Create a {@link QueryBuilderHelper} to prepare a query on elastic search.
+     * 
+     * @return a {@link QueryBuilderHelper} instance.
      */
-    private abstract class QueryHelperBuilder<T> {
-        protected final String prefixField;
-        protected final String[] indices;
-        protected final QueryBuilder queryBuilder;
-        protected Class<?>[] classes;
-        protected Map<String, String[]> filters;
-        protected Map<String, FilterValuesStrategy> filterStrategies = Maps.newHashMap();
-
-        private QueryHelperBuilder(String[] indices, String searchQuery) {
-            this.indices = indices;
-            this.prefixField = null;
-            QueryBuilder queryBuilder;
-            if (searchQuery == null || searchQuery.trim().isEmpty()) {
-                queryBuilder = QueryBuilders.matchAllQuery();
-            } else {
-                queryBuilder = QueryBuilders.matchPhrasePrefixQuery("_all", searchQuery).maxExpansions(maxExpansions);
-            }
-            this.queryBuilder = queryBuilder;
-        }
-
-        private QueryHelperBuilder(String[] indices, String searchPrefix, String prefixField) {
-            this.indices = indices;
-            this.prefixField = prefixField;
-            QueryBuilder queryBuilder;
-            if (searchPrefix == null || searchPrefix.trim().isEmpty()) {
-                queryBuilder = QueryBuilders.matchAllQuery();
-            } else {
-                queryBuilder = QueryBuilders.prefixQuery(prefixField, searchPrefix);
-            }
-            this.queryBuilder = queryBuilder;
-        }
-
-        /**
-         * Specify types to query.
-         * 
-         * @param classes The types to query.
-         * @return this
-         */
-        @SuppressWarnings("unchecked")
-        public T types(Class<?>... classes) {
-            this.classes = classes;
-            return (T) this;
-        }
-
-        /**
-         * Specifies filters to use for the request.
-         * 
-         * @param filters Map of filter key, valid values to create filters.
-         * @return this
-         */
-        @SuppressWarnings("unchecked")
-        public T filters(Map<String, String[]> filters) {
-            this.filters = filters;
-            return (T) this;
-        }
-
-        /**
-         * Specifies filter strategies to use for the request.
-         * 
-         * @param filterStrategies Map of filter key, strategy for the filter. Note that filters default strategy if not specified is OR.
-         * @return this
-         */
-        @SuppressWarnings("unchecked")
-        public T filterStrategies(Map<String, FilterValuesStrategy> filterStrategies) {
-            this.filterStrategies = filterStrategies;
-            return (T) this;
-        }
-
-        protected String[] getTypes() {
-            if (this.classes == null) {
-                return null;
-            }
-            List<String> types = new ArrayList<String>(this.classes.length);
-            for (Class<?> clazz : classes) {
-                if (clazz != null) {
-                    types.add(MappingBuilder.indexTypeFromClass(clazz));
-                }
-            }
-            if (types.isEmpty()) {
-                return null;
-            }
-            return types.toArray(new String[types.size()]);
-        }
+    public IQueryBuilderHelper buildQuery() {
+        return new QueryBuilderHelper(mappingBuilder, esClient);
     }
 
     /**
-     * Helper to build count queries.
-     * 
-     * @author luc boutier
+     * Create a {@link QueryBuilderHelper} to prepare a match phrase prefix query based on the given search query on elastic search. If the search query is
+     * empty
+     * or null this falls back to a match all query.
+     *
+     * @param searchQuery The search query.
+     * @return a {@link QueryBuilderHelper} instance.
      */
-    public class CountQueryHelperBuilder extends QueryHelperBuilder<CountQueryHelperBuilder> {
-        private CountQueryHelperBuilder(String[] indices, String searchQuery) {
-            super(indices, searchQuery);
-        }
+    public IQueryBuilderHelper buildQuery(String searchQuery) {
+        return new QueryBuilderHelper(mappingBuilder, esClient, maxExpansions, searchQuery);
+    }
 
-        private CountQueryHelperBuilder(String[] indices, String searchPrefix, String prefixField) {
-            super(indices, searchPrefix, prefixField);
-        }
+    /**
+     * Create a {@link QueryBuilderHelper} to prepare a prefix query based on the given search query on elastic search. If the search query is empty
+     * or null this falls back to a match all query.
+     *
+     * @param prefixField The field to use for prefix.
+     * @param searchQuery The search query to apply on the prefix.
+     * @return a {@link QueryBuilderHelper} instance.
+     */
+    public IQueryBuilderHelper buildQuery(String prefixField, String searchQuery) {
+        return new QueryBuilderHelper(mappingBuilder, esClient, prefixField, searchQuery);
+    }
+
+    public interface IQueryBuilderHelper<T extends IQueryBuilderHelper> {
+        /**
+         * Add classes to the query so we can use the filter annotations and facets (aggregation) annotations.
+         *
+         * @param classes The classes.
+         * @return a Filterable query builder.
+         */
+        IFilterableQueryBuilderHelper types(Class<?>... classes);
 
         /**
-         * Perform a count request.
-         * 
+         * Execute the given adapter to alter the query builder.
+         *
+         * @param queryBuilderAdapter the query builder consumer to alter the query.
+         * @return current builder instance.
+         */
+        T alterQuery(QueryBuilderAdapter queryBuilderAdapter);
+
+        /**
+         * Set a script function to use for scoring
+         *
+         * @param functionScore The function to use for scoring.
+         * @return current builder instance.
+         */
+        T scriptFunction(String functionScore);
+
+        /**
+         * Perform a count request on the given indices.
+         *
+         * @param indices the indices on which to perform count.
+         * @param types The elastic search types on which to perform count.
          * @return The count response.
          */
-        public CountResponse count() {
-            CountRequestBuilder countRequestBuilder = esClient.getClient().prepareCount(this.indices);
-            countRequestBuilder.setTypes();
-            // Count query doesn't have filters, they must be managed as boolean query element.
-            QueryBuilder countQueryBuilder = buildQueryFilters();
-            countRequestBuilder.setQuery(countQueryBuilder);
-
-            return countRequestBuilder.execute().actionGet();
-        }
-
-        private QueryBuilder buildQueryFilters() {
-            if (filters == null) {
-                return queryBuilder;
-            }
-            BoolQueryBuilder boolQueryBuilder = new BoolQueryBuilder();
-            boolQueryBuilder.must(queryBuilder);
-
-            Map<String, List<QueryBuilder>> nestedQueryBuildersMap = new HashMap<String, List<QueryBuilder>>();
-
-            for (Class<?> clazz : classes) {
-                buildClassQueryFilters(nestedQueryBuildersMap, boolQueryBuilder, clazz);
-            }
-
-            for (Entry<String, List<QueryBuilder>> nestedQuery : nestedQueryBuildersMap.entrySet()) {
-                BoolQueryBuilder nestedBoolQueryBuilder = new BoolQueryBuilder();
-
-                for (QueryBuilder filterQueryBuilder : nestedQuery.getValue()) {
-                    nestedBoolQueryBuilder.must(filterQueryBuilder);
-                }
-
-                boolQueryBuilder.must(QueryBuilders.nestedQuery(nestedQuery.getKey(), nestedBoolQueryBuilder));
-            }
-
-            return boolQueryBuilder;
-        }
-
-        private void buildClassQueryFilters(Map<String, List<QueryBuilder>> nestedQueryBuildersMap, BoolQueryBuilder boolQueryBuilder, Class<?> clazz) {
-            if (clazz == null) {
-                return;
-            }
-
-            List<IFilterBuilderHelper> filterBuilderHelpers = mappingBuilder.getFilters(clazz.getName());
-            if (filterBuilderHelpers == null) {
-                return;
-            }
-
-            for (IFilterBuilderHelper filterBuilderHelper : filterBuilderHelpers) {
-                String esFieldName = filterBuilderHelper.getEsFieldName();
-                if (filters.containsKey(esFieldName)) {
-                    if (filterBuilderHelper.isNested()) {
-                        List<QueryBuilder> nestedQueryBuilders = nestedQueryBuildersMap.get(filterBuilderHelper.getNestedPath());
-                        nestedQueryBuilders.add(filterBuilderHelper.buildQuery(esFieldName, filters.get(esFieldName)));
-                    } else {
-                        boolQueryBuilder.must(filterBuilderHelper.buildQuery(esFieldName, filters.get(esFieldName)));
-                    }
-                }
-            }
-        }
+        CountResponse count(String[] indices, String... types);
     }
 
-    /**
-     * Helper to build search queries.
-     * 
-     * @author luc boutier
-     */
-    public class SearchQueryHelperBuilder extends QueryHelperBuilder<SearchQueryHelperBuilder> {
-        private String fetchContext;
-        private boolean facets = false;
-        private String functionScore;
-        private String fieldSort;
-        private boolean fieldSortDesc;
-        private FilterBuilder customFilter;
-
-        private SearchQueryHelperBuilder(String[] indices, String searchQuery) {
-            super(indices, searchQuery);
-        }
-
-        private SearchQueryHelperBuilder(String[] indices, String searchPrefix, String prefixField) {
-            super(indices, searchPrefix, prefixField);
-        }
+    public interface IFilterableQueryBuilderHelper<T extends IFilterableQueryBuilderHelper> extends IQueryBuilderHelper<T> {
 
         /**
-         * Specifies the fetch context to use for the search (fetch context is not used for count).
-         * 
-         * @param fetchContext The fetch context to use for the query.
-         * @return this
+         * Set filters from user provided filters.
+         *
+         * @param customFilter user provided filters.
+         * @return current instance.
          */
-        public SearchQueryHelperBuilder fetchContext(String fetchContext) {
-            this.fetchContext = fetchContext;
-            return this;
-        }
+        T filters(FilterBuilder... customFilter);
 
         /**
-         * Enable or disable facets computation for the search request.
-         * 
-         * @param facets Activate facets on the search
-         * @return this
+         * Add filters to the current query.
+         *
+         * @param filters The filters to add the the query based on annotation defined filters (as a filtered query).
+         * @param customFilters user provided filters to add (using and clause) to the annotation based filters.
+         * @return current instance.
          */
-        public SearchQueryHelperBuilder facets(boolean facets) {
-            this.facets = facets;
-            return this;
-        }
+        T filters(Map<String, String[]> filters, FilterBuilder... customFilters);
 
         /**
-         * Allows to define a script to perform a function score query.
-         * 
-         * @param functionScore The script for the function score.
-         * @return this
+         * Add filters to the current query.
+         *
+         * @param filters The filters to add the the query based on annotation defined filters (as a filtered query).
+         * @param filterStrategies The filter strategies to apply to filters.
+         * @param customFilters user provided filters to add (using and clause) to the annotation based filters.
+         * @return current instance.
          */
-        public SearchQueryHelperBuilder functionScore(String functionScore) {
-            this.functionScore = functionScore;
-            return this;
-        }
+        T filters(Map<String, String[]> filters, Map<String, FilterValuesStrategy> filterStrategies, FilterBuilder... customFilters);
+
+        /**
+         * 
+         * @param indices
+         * @return
+         */
+        ISearchQueryBuilderHelper prepareSearch(String... indices);
+    }
+
+    public interface ISearchQueryBuilderHelper extends IFilterableQueryBuilderHelper<ISearchQueryBuilderHelper> {
+        /**
+         * Execute a search query using the defined query.
+         *
+         * @param from The start index of the search (for pagination).
+         * @param size The maximum number of elements to return.
+         */
+        SearchResponse execute(int from, int size);
+
+        /**
+         * Get the underlying search request builder.
+         *
+         * @return The underlying search request builder.
+         */
+        SearchRequestBuilder getSearchRequestBuilder();
+
+        /**
+         * Set the aggregations for the given classes.
+         */
+        ISearchQueryBuilderHelper facets();
+
+        /**
+         * Execute the given consumer to alter the search request builder.
+         *
+         * @param searchRequestBuilderConsumer the search request builder consumer to alter the search request.
+         */
+        ISearchQueryBuilderHelper alterSearchRequest(ISearchBuilderAdapter searchRequestBuilderConsumer);
 
         /**
          * Allows to define a sort field.
-         * 
+         *
          * @param fieldName Name of the field to sort.
          * @param desc Descending or Ascending
          * @return this
          */
-        public SearchQueryHelperBuilder fieldSort(String fieldName, boolean desc) {
-            this.fieldSort = fieldName;
-            this.fieldSortDesc = desc;
-            return this;
-        }
+        ISearchQueryBuilderHelper fieldSort(String fieldName, boolean desc);
 
         /**
-         * Add a custom filter builder to the search query
-         * 
-         * @param filterBuilder the custom filter builder for the search query
-         * @return this
-         */
-        public SearchQueryHelperBuilder customFilter(FilterBuilder filterBuilder) {
-            this.customFilter = filterBuilder;
-            return this;
-        }
-
-        /**
-         * Execute a search query using the defined query.
-         * 
-         * @param from The start index of the search (for pagination).
-         * @param size The maximum number of elements to return.
-         */
-        public SearchResponse search(int from, int size) {
-            SearchRequestBuilder searchRequestBuilder = generate(from, size);
-            return searchRequestBuilder.execute().actionGet();
-        }
-
-        /**
-         * Generate a SearchRequestBuilder based on the query helper configuration.
+         * Add a fetch context to the query.
          *
-         * @return an ElasticSearch SearchRequestBuilder that can be used for more advanced configuraiton.
+         * @param fetchContext The fetch context to add to the query.
          */
-        public SearchRequestBuilder generate() {
-            return generate(null);
-        }
+        ISearchQueryBuilderHelper fetchContext(String fetchContext);
 
         /**
-         * Generate a SearchRequestBuilder based on the query helper configuration.
+         * Apply the fetch context to the given aggregation (BUT DOES NOT add it to the query).
          * 
-         * @return an ElasticSearch SearchRequestBuilder that can be used for more advanced configuraiton.
+         * @param fetchContext The fetch context to add to the aggregation.
+         * @param topHitsBuilder The top hits aggregation builder on which to add fetch context include and excludes.
+         * @return The search query builder helper with the top
          */
-        public SearchRequestBuilder generate(QueryBuilderAdapter queryBuilderAdapter) {
-            SearchRequestBuilder searchRequestBuilder = esClient.getClient().prepareSearch(this.indices);
-            searchRequestBuilder.setSearchType(SearchType.QUERY_THEN_FETCH);
-            QueryBuilder query = queryBuilder;
+        ISearchQueryBuilderHelper fetchContext(String fetchContext, TopHitsBuilder topHitsBuilder);
+    }
+
+    public static class QueryBuilderHelper implements ISearchQueryBuilderHelper {
+        protected final MappingBuilder mappingBuilder;
+        protected final ElasticSearchClient esClient;
+        protected QueryBuilder queryBuilder;
+        protected String prefixField;
+        protected Class<?>[] classes;
+        protected Map<String, String[]> filters;
+        protected SearchRequestBuilder searchRequestBuilder;
+        private boolean fieldSort = false;
+
+        private QueryBuilderHelper(MappingBuilder mappingBuilder, ElasticSearchClient esClient) {
+            this.queryBuilder = QueryBuilders.matchAllQuery();
+            this.mappingBuilder = mappingBuilder;
+            this.esClient = esClient;
+        }
+
+        protected QueryBuilderHelper(MappingBuilder mappingBuilder, ElasticSearchClient esClient, int maxExpansions, String searchQuery) {
+            this.queryBuilder = getOrMatchAll(searchQuery, () -> QueryBuilders.matchPhrasePrefixQuery("_all", searchQuery).maxExpansions(maxExpansions));
+            this.mappingBuilder = mappingBuilder;
+            this.esClient = esClient;
+        }
+
+        protected QueryBuilderHelper(MappingBuilder mappingBuilder, ElasticSearchClient esClient, String prefixField, String searchPrefix) {
+            this.queryBuilder = getOrMatchAll(searchPrefix, () -> QueryBuilders.prefixQuery(prefixField, searchPrefix));
+            this.mappingBuilder = mappingBuilder;
+            this.esClient = esClient;
+        }
+
+        protected QueryBuilderHelper(QueryBuilderHelper from) {
+            this.queryBuilder = from.queryBuilder;
+            this.prefixField = from.prefixField;
+            this.mappingBuilder = from.mappingBuilder;
+            this.esClient = from.esClient;
+        }
+
+        private QueryBuilder getOrMatchAll(String search, Supplier<QueryBuilder> supplier) {
+            if (search == null || search.trim().isEmpty()) {
+                return QueryBuilders.matchAllQuery();
+            }
+            return supplier.get();
+        }
+
+        @Override
+        public QueryBuilderHelper types(Class<?>... classes) {
+            // you must set classes before you can set filters for them.
+            this.classes = classes;
+            return this;
+        }
+
+        @Override
+        public QueryBuilderHelper alterQuery(QueryBuilderAdapter queryBuilderConsumer) {
+            queryBuilder = queryBuilderConsumer.adapt(this.queryBuilder);
+            if (searchRequestBuilder != null) {
+                searchRequestBuilder.setQuery(queryBuilder);
+            }
+            return this;
+        }
+
+        @Override
+        public QueryBuilderHelper scriptFunction(String functionScore) {
             if (functionScore != null) {
-                query = QueryBuilders.functionScoreQuery(query, ScoreFunctionBuilders.scriptFunction(functionScore));
+                this.alterQuery(query -> QueryBuilders.functionScoreQuery(query, ScoreFunctionBuilders.scriptFunction(functionScore)));
             }
-            if (queryBuilderAdapter != null) {
-                query = queryBuilderAdapter.adapt(queryBuilder);
+            return this;
+        }
+
+        @Override
+        public CountResponse count(String[] indices, String... types) {
+            CountRequestBuilder countRequestBuilder = esClient.getClient().prepareCount(indices);
+            if (types != null && types.length > 0) {
+                countRequestBuilder.setTypes(types);
             }
-            // create a filtered query with filters and add aggregations
+            countRequestBuilder.setQuery(this.queryBuilder);
+            return countRequestBuilder.execute().actionGet();
+        }
+
+        @Override
+        public QueryBuilderHelper prepareSearch(String... indices) {
+            this.searchRequestBuilder = esClient.getClient().prepareSearch();
+            // default search type.
+            this.searchRequestBuilder.setSearchType(SearchType.QUERY_THEN_FETCH);
+            this.searchRequestBuilder.setQuery(queryBuilder);
+            this.searchRequestBuilder.setIndices(indices);
+            return this;
+        }
+
+        @Override
+        public QueryBuilderHelper filters(FilterBuilder... customFilter) {
+            this.queryBuilder = addFilters(queryBuilder, Lists.newArrayList(customFilter));
+            return this;
+        }
+
+        @Override
+        public QueryBuilderHelper filters(Map<String, String[]> filters, FilterBuilder... customFilters) {
+            return this.filters(filters, null, customFilters);
+        }
+
+        @Override
+        public QueryBuilderHelper filters(Map<String, String[]> filters, Map<String, FilterValuesStrategy> filterStrategies, FilterBuilder... customFilters) {
+            this.filters = filters;
             if (classes != null && classes.length > 0) {
-                QueryBuilder newQB = null;
-                addFetchContext(searchRequestBuilder);
-                Set<String> aggIds = Sets.newHashSet();
+                QueryBuilder filteredQueryBuilder = null;
                 for (Class<?> clazz : classes) {
-                    newQB = addFilters(query, searchRequestBuilder, customFilter, clazz, aggIds);
+                    filteredQueryBuilder = addFilters(this.queryBuilder, clazz, filters, filterStrategies, customFilters);
                 }
-                if (newQB != null) {
-                    query = newQB;
+                if (filteredQueryBuilder != null) {
+                    this.queryBuilder = filteredQueryBuilder;
                 }
             }
-            searchRequestBuilder.setQuery(query);
-            searchRequestBuilder.setTypes(getTypes());
-            if (fieldSort != null) {
-                FieldSortBuilder sortBuilder = SortBuilders.fieldSort(fieldSort);
-                if (fieldSortDesc) {
-                    sortBuilder.order(SortOrder.DESC);
-                } else {
-                    sortBuilder.order(SortOrder.ASC);
-                }
-                // TODO: chenged to use sortBuilder.unmappedType
-                sortBuilder.ignoreUnmapped(true);
-                searchRequestBuilder.addSort(sortBuilder);
+            if (this.searchRequestBuilder != null) {
+                this.searchRequestBuilder.setQuery(queryBuilder);
             }
-
-            if (prefixField == null) {
-                if (fieldSort == null) {
-                    searchRequestBuilder.addSort(SortBuilders.scoreSort());
-                }
-            } else {
-                searchRequestBuilder.addSort(SortBuilders.fieldSort(prefixField));
-            }
-            return searchRequestBuilder;
+            return this;
         }
 
-        /**
-         * Generate a SearchRequestBuilder based on the query helper configuration.
-         *
-         * @param from The start index of the search (for pagination).
-         * @param size The maximum number of elements to return.
-         * @param queryBuilderAdapter adapter.
-         * @return an ElasticSearch SearchRequestBuilder that can be used for more advanced configuraiton.
-         */
-        public SearchRequestBuilder generate(int from, int size, QueryBuilderAdapter queryBuilderAdapter) {
-            SearchRequestBuilder searchRequestBuilder = generate(queryBuilderAdapter);
-            searchRequestBuilder.setSize(size).setFrom(from);
-            return searchRequestBuilder;
-        }
-
-        /**
-         * Generate a SearchRequestBuilder based on the query helper configuration.
-         *
-         * @param from The start index of the search (for pagination).
-         * @param size The maximum number of elements to return.
-         * @return an ElasticSearch SearchRequestBuilder that can be used for more advanced configuraiton.
-         */
-        public SearchRequestBuilder generate(int from, int size) {
-            return generate(from, size, null);
-        }
-
-        private void addFetchContext(SearchRequestBuilder searchRequestBuilder) {
-            if (fetchContext == null) {
-                return;
-            }
-
-            List<String> includes = new ArrayList<String>();
-            List<String> excludes = new ArrayList<String>();
-
-            for (Class<?> clazz : classes) {
-                if (clazz != null) {
-                    // get the fetch context for the given type and apply it to the search
-                    SourceFetchContext sourceFetchContext = mappingBuilder.getFetchSource(clazz.getName(), fetchContext);
-                    if (sourceFetchContext != null) {
-                        includes.addAll(sourceFetchContext.getIncludes());
-                        excludes.addAll(sourceFetchContext.getExcludes());
-                    } else {
-                        LOGGER.warn("Unable to find fetch context <" + fetchContext + "> for class <" + clazz.getName() + ">. It will be ignored.");
-                    }
-                }
-            }
-
-            String[] inc = includes.isEmpty() ? null : includes.toArray(new String[includes.size()]);
-            String[] exc = excludes.isEmpty() ? null : excludes.toArray(new String[excludes.size()]);
-            searchRequestBuilder.setFetchSource(inc, exc);
-        }
-
-        private QueryBuilder addFilters(QueryBuilder query, SearchRequestBuilder searchRequestBuilder, FilterBuilder customFilter, Class<?> clazz,
-                Set<String> aggIds) {
+        private QueryBuilder addFilters(QueryBuilder query, Class<?> clazz, Map<String, String[]> filters, Map<String, FilterValuesStrategy> filterStrategies,
+                FilterBuilder... customFilters) {
             if (clazz == null) {
                 return query;
             }
-            final List<FilterBuilder> esFilters = buildFilters(clazz.getName());
-            if (customFilter != null) {
-                esFilters.add(customFilter);
+            final List<FilterBuilder> esFilters = buildFilters(clazz.getName(), filters, filterStrategies);
+            if (customFilters != null) {
+                for (FilterBuilder customFilter : customFilters) {
+                    esFilters.add(customFilter);
+                }
+
             }
+            return addFilters(query, esFilters);
+        }
+
+        private QueryBuilder addFilters(QueryBuilder query, final List<FilterBuilder> esFilters) {
             FilterBuilder filter = null;
             if (esFilters.size() > 0) {
                 filter = getAndFilter(esFilters);
@@ -495,31 +347,18 @@ public class QueryHelper {
                     query = QueryBuilders.filteredQuery(query, filter);
                 }
             }
-            if (facets) {
-                if (filters == null) {
-                    addAggregations(new HashMap(), clazz.getName(), searchRequestBuilder, aggIds);
-                } else {
-                    addAggregations(filters, clazz.getName(), searchRequestBuilder, aggIds);
-                }
-            }
             return query;
         }
 
-        private void addAggregations(Map<String, String[]> filters, String className, SearchRequestBuilder searchRequestBuilder, Set<String> aggIds) {
-            final List<AggregationBuilder> aggregations = buildAggregations(className, filters.keySet());
-            for (AggregationBuilder aggregation : aggregations) {
-                if (!aggIds.contains(aggregation.getName())) {
-                    aggIds.add(aggregation.getName());
-                    searchRequestBuilder.addAggregation(aggregation);
-                }
-            }
-        }
-
-        private List<FilterBuilder> buildFilters(String className) {
+        private List<FilterBuilder> buildFilters(String className, Map<String, String[]> filters, Map<String, FilterValuesStrategy> filterStrategies) {
             List<FilterBuilder> filterBuilders = new ArrayList<FilterBuilder>();
 
             if (filters == null) {
                 return filterBuilders;
+            }
+
+            if (filterStrategies == null) {
+                filterStrategies = Maps.newHashMap();
             }
 
             Map<String, List<FilterBuilder>> nestedFilterBuilders = new HashMap<String, List<FilterBuilder>>();
@@ -567,6 +406,116 @@ public class QueryHelper {
                 return filters.get(0);
             }
             return FilterBuilders.andFilter(filters.toArray(new FilterBuilder[filters.size()]));
+        }
+
+        @Override
+        public SearchResponse execute(int from, int size) {
+            if (prefixField == null) {
+                if (!fieldSort) {
+                    searchRequestBuilder.addSort(SortBuilders.scoreSort());
+                }
+            } else {
+                searchRequestBuilder.addSort(SortBuilders.fieldSort(prefixField));
+            }
+            return searchRequestBuilder.setFrom(from).setSize(size).execute().actionGet();
+        }
+
+        @Override
+        public SearchRequestBuilder getSearchRequestBuilder() {
+            return searchRequestBuilder;
+        }
+
+        @Override
+        public QueryBuilderHelper alterSearchRequest(ISearchBuilderAdapter searchRequestBuilderConsumer) {
+            searchRequestBuilderConsumer.adapt(this.searchRequestBuilder);
+            return this;
+        }
+
+        @Override
+        public QueryBuilderHelper fieldSort(String fieldName, boolean desc) {
+            if (fieldName == null) {
+                return this;
+            }
+            fieldSort = true;
+            FieldSortBuilder sortBuilder = SortBuilders.fieldSort(fieldName);
+            if (desc) {
+                sortBuilder.order(SortOrder.DESC);
+            } else {
+                sortBuilder.order(SortOrder.ASC);
+            }
+            // TODO: chenged to use sortBuilder.unmappedType
+            sortBuilder.ignoreUnmapped(true);
+            searchRequestBuilder.addSort(sortBuilder);
+            return this;
+        }
+
+        @Override
+        public QueryBuilderHelper fetchContext(String fetchContext) {
+            if (fetchContext == null) {
+                return this;
+            }
+
+            String[][] incExc = includeExcludes(fetchContext);
+
+            searchRequestBuilder.setFetchSource(incExc[0], incExc[1]);
+            return this;
+        }
+
+        @Override
+        public QueryBuilderHelper fetchContext(String fetchContext, TopHitsBuilder aggregation) {
+            if (fetchContext == null) {
+                return this;
+            }
+
+            String[][] incExc = includeExcludes(fetchContext);
+
+            aggregation.setFetchSource(incExc[0], incExc[1]);
+            return this;
+        }
+
+        private String[][] includeExcludes(String fetchContext) {
+            List<String> includes = new ArrayList<String>();
+            List<String> excludes = new ArrayList<String>();
+
+            for (Class<?> clazz : classes) {
+                if (clazz != null) {
+                    // get the fetch context for the given type and apply it to the search
+                    SourceFetchContext sourceFetchContext = mappingBuilder.getFetchSource(clazz.getName(), fetchContext);
+                    if (sourceFetchContext != null) {
+                        includes.addAll(sourceFetchContext.getIncludes());
+                        excludes.addAll(sourceFetchContext.getExcludes());
+                    } else {
+                        LOGGER.warn("Unable to find fetch context <" + fetchContext + "> for class <" + clazz.getName() + ">. It will be ignored.");
+                    }
+                }
+            }
+
+            String[] inc = includes.isEmpty() ? null : includes.toArray(new String[includes.size()]);
+            String[] exc = excludes.isEmpty() ? null : excludes.toArray(new String[excludes.size()]);
+            return new String[][] { inc, exc };
+        }
+
+        @Override
+        public QueryBuilderHelper facets() {
+            Set<String> aggIds = Sets.newHashSet();
+            for (Class<?> clazz : classes) {
+                if (filters == null) {
+                    addAggregations(new HashMap(), clazz.getName(), searchRequestBuilder, aggIds);
+                } else {
+                    addAggregations(filters, clazz.getName(), searchRequestBuilder, aggIds);
+                }
+            }
+            return this;
+        }
+
+        private void addAggregations(Map<String, String[]> filters, String className, SearchRequestBuilder searchRequestBuilder, Set<String> aggIds) {
+            final List<AggregationBuilder> aggregations = buildAggregations(className, filters.keySet());
+            for (AggregationBuilder aggregation : aggregations) {
+                if (!aggIds.contains(aggregation.getName())) {
+                    aggIds.add(aggregation.getName());
+                    searchRequestBuilder.addAggregation(aggregation);
+                }
+            }
         }
 
         /**
