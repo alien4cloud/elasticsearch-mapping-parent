@@ -128,4 +128,6 @@ public @interface StringField {
      * @return
      */
     int positionOffsetGap() default 0;
+
+
 }

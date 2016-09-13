@@ -308,6 +308,7 @@ public class FieldsMappingBuilder {
 
         // String field annotations.
         processFieldAnnotation(StringField.class, new StringFieldAnnotationParser(), propertiesDefinitionMap, pathPrefix, indexable);
+        processFieldAnnotation(StringFieldMulti.class, new StringFieldMultiAnnotationParser(), propertiesDefinitionMap, pathPrefix, indexable);
         processFieldAnnotation(Analyser.class, new AnalyserAnnotationParser(), propertiesDefinitionMap, pathPrefix, indexable);
         processFieldAnnotation(IndexAnalyser.class, new IndexAnalyserAnnotationParser(), propertiesDefinitionMap, pathPrefix, indexable);
         processFieldAnnotation(SearchAnalyser.class, new SearchAnalyserAnnotationParser(), propertiesDefinitionMap, pathPrefix, indexable);

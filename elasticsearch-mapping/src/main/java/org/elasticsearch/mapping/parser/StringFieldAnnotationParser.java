@@ -59,6 +59,6 @@ public class StringFieldAnnotationParser implements IPropertyAnnotationParser<St
             fieldDefinition.put("ignore_above", annotation.ignoreAbove());
         }
         
-        annotation.positionOffsetGap();
+        // FIXME annotation.positionOffsetGap();
     }
 }
