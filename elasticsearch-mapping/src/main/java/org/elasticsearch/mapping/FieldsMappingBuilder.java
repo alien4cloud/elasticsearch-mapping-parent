@@ -223,18 +223,10 @@ public class FieldsMappingBuilder {
             }
             for (String path : paths) {
                 path = path.trim();
-                boolean isAnalyzed = isAnalyzed(indexable);
-                String nestedPath = indexable.getAnnotation(NestedObject.class) == null ? null : esFieldName;
-                if (nestedPath == null) {
-                    int nestedIndicator = esFieldName.lastIndexOf(".");
-                    if (nestedIndicator > 0) {
-                        nestedPath = esFieldName.substring(0, nestedIndicator);
-                        esFieldName = esFieldName.substring(nestedIndicator + 1, esFieldName.length());
-                    }
+                addFilter(classFilters, esFieldName, indexable, path, isAnalyzed(indexable, null));
+                for (String alternateFieldName : alternateFieldNames(indexable)) {
+                    addFilter(classFilters, alternateFieldName, indexable, path, isAnalyzed(indexable, alternateFieldName));
                 }
-                String filterPath = getFilterPath(path, esFieldName);
-
-                classFilters.add(new TermsFilterBuilderHelper(isAnalyzed, nestedPath, filterPath));
             }
             return;
         }
@@ -243,6 +235,20 @@ public class FieldsMappingBuilder {
             IFilterBuilderHelper facetBuilderHelper = new RangeFilterBuilderHelper(null, esFieldName, rangeFilter);
             classFilters.add(facetBuilderHelper);
         }
+    }
+
+    private void addFilter(List<IFilterBuilderHelper> classFilters, String esFieldName, Indexable indexable, String path, boolean isAnalyzed) {
+        String nestedPath = indexable.getAnnotation(NestedObject.class) == null ? null : esFieldName;
+        if (nestedPath == null) {
+            int nestedIndicator = esFieldName.lastIndexOf(".");
+            if (nestedIndicator > 0) {
+                nestedPath = esFieldName.substring(0, nestedIndicator);
+                esFieldName = esFieldName.substring(nestedIndicator + 1, esFieldName.length());
+            }
+        }
+        String filterPath = getFilterPath(path, esFieldName);
+
+        classFilters.add(new TermsFilterBuilderHelper(isAnalyzed, nestedPath, filterPath));
     }
 
     private void processFacetAnnotation(List<IFacetBuilderHelper> classFacets, List<IFilterBuilderHelper> classFilters, String esFieldName,
@@ -263,17 +269,11 @@ public class FieldsMappingBuilder {
             }
             for (String path : paths) {
                 path = path.trim();
-                boolean isAnalyzed = isAnalyzed(indexable);
-                String nestedPath = indexable.getAnnotation(NestedObject.class) == null ? null : esFieldName;
-                String filterPath = getFilterPath(path, esFieldName);
 
-                IFacetBuilderHelper facetBuilderHelper = new TermsAggregationBuilderHelper(isAnalyzed, nestedPath, filterPath, termsFacet);
-                classFacets.add(facetBuilderHelper);
-                if (classFilters.contains(facetBuilderHelper)) {
-                    classFilters.remove(facetBuilderHelper);
-                    LOGGER.warn("Field <" + esFieldName + "> already had a filter that will be replaced by the defined facet. Only a single one is allowed.");
+                addAggregation(termsFacet, indexable, esFieldName, path, isAnalyzed(indexable, null), classFacets, classFilters);
+                for (String alternateFieldName : alternateFieldNames(indexable)) {
+                    addAggregation(termsFacet, indexable, alternateFieldName, path, isAnalyzed(indexable, alternateFieldName), classFacets, classFilters);
                 }
-                classFilters.add(facetBuilderHelper);
             }
             return;
         }
@@ -293,13 +293,48 @@ public class FieldsMappingBuilder {
         return path.isEmpty() ? esFieldName : esFieldName + "." + path;
     }
 
-    private boolean isAnalyzed(Indexable indexable) {
+    private boolean isAnalyzed(Indexable indexable, String name) {
         boolean isAnalysed = true;
+        StringFieldMulti multiAnnotation = indexable.getAnnotation(StringFieldMulti.class);
+        if (multiAnnotation != null) {
+            if (name == null) {
+                return IndexType.analyzed.equals(multiAnnotation.main().indexType());
+            } else {
+                for (int i = 0; i < multiAnnotation.multiNames().length; i++) {
+                    if (multiAnnotation.multiNames()[i].equals(name)) {
+                        return IndexType.analyzed.equals(multiAnnotation.multi()[i].indexType());
+                    }
+                }
+            }
+        }
+
         StringField stringFieldAnnotation = indexable.getAnnotation(StringField.class);
-        if (stringFieldAnnotation != null && !IndexType.analyzed.equals(stringFieldAnnotation.indexType())) {
-            isAnalysed = false;
+        if (stringFieldAnnotation != null) {
+            return IndexType.analyzed.equals(stringFieldAnnotation.indexType());
         }
         return isAnalysed;
+    }
+
+    private void addAggregation(TermsFacet termsFacet, Indexable indexable, String esFieldName, String path, boolean isAnalyzed,
+            List<IFacetBuilderHelper> classFacets, List<IFilterBuilderHelper> classFilters) {
+        String nestedPath = indexable.getAnnotation(NestedObject.class) == null ? null : esFieldName;
+        String filterPath = getFilterPath(path, esFieldName);
+
+        IFacetBuilderHelper facetBuilderHelper = new TermsAggregationBuilderHelper(isAnalyzed, nestedPath, filterPath, termsFacet);
+        classFacets.add(facetBuilderHelper);
+        if (classFilters.contains(facetBuilderHelper)) {
+            classFilters.remove(facetBuilderHelper);
+            LOGGER.warn("Field <" + esFieldName + "> already had a filter that will be replaced by the defined facet. Only a single one is allowed.");
+        }
+        classFilters.add(facetBuilderHelper);
+    }
+
+    private String[] alternateFieldNames(Indexable indexable) {
+        StringFieldMulti multi = indexable.getAnnotation(StringFieldMulti.class);
+        if (multi == null) {
+            return new String[0];
+        }
+        return multi.multiNames();
     }
 
     private void processStringOrPrimitive(Class<?> clazz, Map<String, Object> propertiesDefinitionMap, String pathPrefix, Indexable indexable) {

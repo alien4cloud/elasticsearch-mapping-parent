@@ -412,6 +412,7 @@ public class QueryHelper {
 
         @Override
         public SearchResponse execute(int from, int size) {
+            searchRequestBuilder.setTypes(getTypes());
             if (prefixField == null) {
                 if (!fieldSort) {
                     searchRequestBuilder.addSort(SortBuilders.scoreSort());
@@ -420,6 +421,22 @@ public class QueryHelper {
                 searchRequestBuilder.addSort(SortBuilders.fieldSort(prefixField));
             }
             return searchRequestBuilder.setFrom(from).setSize(size).execute().actionGet();
+        }
+
+        protected String[] getTypes() {
+            if (this.classes == null) {
+                return null;
+            }
+            List<String> types = new ArrayList<String>(this.classes.length);
+            for (Class<?> clazz : classes) {
+                if (clazz != null) {
+                    types.add(MappingBuilder.indexTypeFromClass(clazz));
+                }
+            }
+            if (types.isEmpty()) {
+                return null;
+            }
+            return types.toArray(new String[types.size()]);
         }
 
         @Override
@@ -445,7 +462,7 @@ public class QueryHelper {
             } else {
                 sortBuilder.order(SortOrder.ASC);
             }
-            // TODO: chenged to use sortBuilder.unmappedType
+            // TODO: change to use sortBuilder.unmappedType
             sortBuilder.ignoreUnmapped(true);
             searchRequestBuilder.addSort(sortBuilder);
             return this;
