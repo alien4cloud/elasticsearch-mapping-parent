@@ -11,12 +11,12 @@ import java.lang.annotation.Target;
  * @author luc boutier
  */
 @Retention(RetentionPolicy.RUNTIME)
-@Target({ ElementType.FIELD, ElementType.METHOD })
+@Target({ ElementType.TYPE })
 public @interface TypeName {
-	/**
-	 * The name of the object type in elastic search.
-	 * 
-	 * @return The name of the object type in elastic search.
-	 */
-	String typeName();
+    /**
+     * The name of the object type in elastic search.
+     * 
+     * @return The name of the object type in elastic search.
+     */
+    String typeName();
 }

@@ -310,10 +310,7 @@ public class QueryHelper {
         public QueryBuilderHelper filters(Map<String, String[]> filters, Map<String, FilterValuesStrategy> filterStrategies, FilterBuilder... customFilters) {
             this.filters = filters;
             if (classes != null && classes.length > 0) {
-                QueryBuilder filteredQueryBuilder = null;
-                for (Class<?> clazz : classes) {
-                    filteredQueryBuilder = addFilters(this.queryBuilder, clazz, filters, filterStrategies, customFilters);
-                }
+                QueryBuilder filteredQueryBuilder = addFilters(this.queryBuilder, classes[0], filters, filterStrategies, customFilters);
                 if (filteredQueryBuilder != null) {
                     this.queryBuilder = filteredQueryBuilder;
                 }

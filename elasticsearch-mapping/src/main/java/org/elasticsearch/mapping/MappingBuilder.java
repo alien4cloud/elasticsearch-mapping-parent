@@ -2,11 +2,8 @@ package org.elasticsearch.mapping;
 
 import java.beans.IntrospectionException;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.lang.reflect.Modifier;
+import java.util.*;
 
 import org.elasticsearch.annotation.ESAll;
 import org.elasticsearch.annotation.ESObject;
@@ -156,16 +153,18 @@ public class MappingBuilder {
         }
     }
 
-    private void parseClassMapping(Class<?> clazz, String pathPrefix) throws IntrospectionException, JsonGenerationException, JsonMappingException, IOException {
+    public void parseClassMapping(Class<?> clazz, String pathPrefix) throws IntrospectionException, JsonGenerationException, JsonMappingException, IOException {
         ESObject esObject = AnnotationScanner.getAnnotation(ESObject.class, clazz);
         ESAll esAll = AnnotationScanner.getAnnotation(ESAll.class, clazz);
 
-        TypeName typeName = clazz.getAnnotation(TypeName.class);
-        String typeNameStr;
-        if (typeName == null) {
-            typeNameStr = MappingBuilder.indexTypeFromClass(clazz);
-        } else {
-            typeNameStr = typeName.typeName();
+        String typeNameStr = null;
+        if (!Modifier.isAbstract(clazz.getModifiers())) {
+            TypeName typeName = clazz.getAnnotation(TypeName.class);
+            if (typeName == null) {
+                typeNameStr = MappingBuilder.indexTypeFromClass(clazz);
+            } else {
+                typeNameStr = typeName.typeName();
+            }
         }
 
         Map<String, Object> typeDefinitionMap = new HashMap<String, Object>();
@@ -176,8 +175,9 @@ public class MappingBuilder {
 
         typeDefinitionMap.put(typeNameStr, classDefinitionMap);
 
-        if(esAll!=null) {
-            classDefinitionMap.put("_all", MapUtil.getMap(new String[]{"enabled", "analyzer", "store"}, new Object[]{true, esAll.analyser(), esAll.store()}));
+        if (esAll != null) {
+            classDefinitionMap.put("_all",
+                    MapUtil.getMap(new String[] { "enabled", "analyzer", "store" }, new Object[] { true, esAll.analyser(), esAll.store() }));
         } else {
             classDefinitionMap.put("_all", MapUtil.getMap("enabled", esObject.all()));
         }
@@ -187,8 +187,11 @@ public class MappingBuilder {
         this.fieldsMappingBuilder.parseFieldMappings(clazz, classDefinitionMap, facetFields, filteredFields, fetchContexts, pathPrefix);
 
         ObjectMapper mapper = new ObjectMapper();
-        String jsonMapping = mapper.writeValueAsString(typeDefinitionMap);
-        this.classesMappings.put(clazz.getName(), jsonMapping);
+        if (typeNameStr != null) {
+            String jsonMapping = mapper.writeValueAsString(typeDefinitionMap);
+            this.classesMappings.put(clazz.getName(), jsonMapping);
+        }
+        // abstract types are not registered but can be use for global queries over indexes.
         this.typeByClassName.put(clazz.getName(), typeNameStr);
         this.facetByClassName.put(clazz.getName(), facetFields);
         this.filtersByClassName.put(clazz.getName(), filteredFields);
