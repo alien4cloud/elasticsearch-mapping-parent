@@ -1,5 +1,8 @@
 package org.elasticsearch.mapping;
 
+import java.util.Collections;
+import java.util.List;
+
 import org.elasticsearch.annotation.query.RangeFacet;
 import org.elasticsearch.search.aggregations.AggregationBuilder;
 import org.elasticsearch.search.aggregations.AggregationBuilders;
@@ -26,13 +29,13 @@ public class RangeAggregationBuilderHelper extends RangeFilterBuilderHelper impl
     }
 
     @Override
-    public AggregationBuilder buildFacet() {
+    public List<AggregationBuilder> buildFacets() {
         RangeBuilder rangeFacetBuilder = AggregationBuilders.range(getEsFieldName()).field(getEsFieldName()).addUnboundedFrom(this.ranges[0]);
         int i = 1;
         for (; i < this.ranges.length - 2; i += 2) {
             rangeFacetBuilder.addRange(this.ranges[i], this.ranges[i + 1]);
         }
         rangeFacetBuilder.addUnboundedTo(this.ranges[i]);
-        return rangeFacetBuilder;
+        return Collections.singletonList(rangeFacetBuilder);
     }
 }

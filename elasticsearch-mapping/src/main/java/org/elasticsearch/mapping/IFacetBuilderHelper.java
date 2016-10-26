@@ -1,5 +1,7 @@
 package org.elasticsearch.mapping;
 
+import java.util.List;
+
 import org.elasticsearch.search.aggregations.AggregationBuilder;
 
 /**
@@ -9,9 +11,9 @@ import org.elasticsearch.search.aggregations.AggregationBuilder;
  */
 public interface IFacetBuilderHelper extends IFilterBuilderHelper {
     /**
-     * Build a facet.
+     * Build facets.
      * 
-     * @return The facet.
+     * @return The facets.
      */
-    AggregationBuilder buildFacet();
+    List<AggregationBuilder> buildFacets();
 }

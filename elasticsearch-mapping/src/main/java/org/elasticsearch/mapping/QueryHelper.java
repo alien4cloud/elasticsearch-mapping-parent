@@ -1,7 +1,11 @@
 package org.elasticsearch.mapping;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.function.Supplier;
 
 import javax.annotation.Resource;
@@ -551,7 +555,7 @@ public class QueryHelper {
 
             for (IFacetBuilderHelper facetBuilderHelper : facetBuilderHelpers) {
                 if (filters == null || !filters.contains(facetBuilderHelper.getEsFieldName())) {
-                    aggregationBuilders.add(facetBuilderHelper.buildFacet());
+                    aggregationBuilders.addAll(facetBuilderHelper.buildFacets());
                 }
             }
 
