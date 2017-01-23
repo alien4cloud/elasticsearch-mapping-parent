@@ -19,7 +19,7 @@ public class StringFieldMultiAnnotationParser implements IPropertyAnnotationPars
     private static final ESLogger LOGGER = Loggers.getLogger(MappingBuilder.class);
     private StringFieldAnnotationParser wrapped = new StringFieldAnnotationParser();
 
-    public void parseAnnotation(StringFieldMulti annotation, Map<String, Object> fieldDefinition, String pathPrefix, Indexable indexable) {
+    public void parseAnnotation(StringFieldMulti annotation, Map<String, Object> fieldDefinition, String pathPrefix, String nestedPrefix, Indexable indexable) {
         if (fieldDefinition.get("type") != null) {
             LOGGER.info("Overriding mapping for field {} for class {} was defined as type {}", indexable.getName(), indexable.getDeclaringClassName(),
                     fieldDefinition.get("type"));
@@ -27,14 +27,14 @@ public class StringFieldMultiAnnotationParser implements IPropertyAnnotationPars
         }
 
         StringField mainStringField = annotation.main();
-        wrapped.parseAnnotation(mainStringField, fieldDefinition, pathPrefix, indexable);
+        wrapped.parseAnnotation(mainStringField, fieldDefinition, pathPrefix, nestedPrefix, indexable);
 
         Map<String, Object> multiFields = Maps.newHashMap();
 
         for (int i = 0; i < annotation.multi().length; i++) {
             StringField multi = annotation.multi()[i];
             Map<String, Object> multiFieldDefinition = Maps.newHashMap();
-            wrapped.parseAnnotation(multi, multiFieldDefinition, pathPrefix, indexable);
+            wrapped.parseAnnotation(multi, multiFieldDefinition, pathPrefix, nestedPrefix, indexable);
             multiFields.put(annotation.multiNames()[i], multiFieldDefinition);
         }
         fieldDefinition.put("fields", multiFields);

@@ -17,7 +17,7 @@ import org.elasticsearch.mapping.MappingException;
 public class DateFormatAnnotationParser implements IPropertyAnnotationParser<DateFormat> {
     private static final ESLogger LOGGER = Loggers.getLogger(MappingBuilder.class);
 
-    public void parseAnnotation(DateFormat annotation, Map<String, Object> fieldDefinition, String pathPrefix,
+    public void parseAnnotation(DateFormat annotation, Map<String, Object> fieldDefinition, String pathPrefix, String nestedPrefix,
             Indexable indexable) {
         if (fieldDefinition.get("type") == null) {
             fieldDefinition.put("type", "date");

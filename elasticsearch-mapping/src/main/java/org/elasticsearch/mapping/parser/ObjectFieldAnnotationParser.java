@@ -27,7 +27,7 @@ public class ObjectFieldAnnotationParser implements IPropertyAnnotationParser<Ob
     }
 
     @Override
-    public void parseAnnotation(ObjectField annotation, Map<String, Object> fieldDefinition, String pathPrefix, Indexable indexable) {
+    public void parseAnnotation(ObjectField annotation, Map<String, Object> fieldDefinition, String pathPrefix, String nestedPrefix, Indexable indexable) {
         if (fieldDefinition.get("type") != null) {
             LOGGER.info("Overriding mapping for field {} for class {} was defined as type {}", indexable.getName(), indexable.getDeclaringClassName(),
                     fieldDefinition.get("type"));
@@ -44,7 +44,8 @@ public class ObjectFieldAnnotationParser implements IPropertyAnnotationParser<Ob
             // nested types can provide replacement class to be managed. This can be usefull to override map default type for example.
             Class<?> replaceClass = objectClass.equals(ObjectField.class) ? indexable.getType() : objectClass;
             try {
-                this.fieldsMappingBuilder.parseFieldMappings(replaceClass, fieldDefinition, facets, filters, fetchContext, indexable.getName() + ".");
+                this.fieldsMappingBuilder.parseFieldMappings(replaceClass, fieldDefinition, facets, filters, fetchContext, indexable.getName() + ".",
+                        nestedPrefix);
             } catch (IntrospectionException e) {
                 LOGGER.error("Fail to parse object class <" + replaceClass.getName() + ">", e);
             }

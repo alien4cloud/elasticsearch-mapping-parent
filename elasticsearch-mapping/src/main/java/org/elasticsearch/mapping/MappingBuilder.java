@@ -184,7 +184,7 @@ public class MappingBuilder {
         classDefinitionMap.put("_source", MapUtil.getMap("enabled", esObject.source()));
         classDefinitionMap.put("_type", MapUtil.getMap(new String[] { "store", "index" }, new Object[] { esObject.store(), esObject.index() }));
 
-        this.fieldsMappingBuilder.parseFieldMappings(clazz, classDefinitionMap, facetFields, filteredFields, fetchContexts, pathPrefix);
+        this.fieldsMappingBuilder.parseFieldMappings(clazz, classDefinitionMap, facetFields, filteredFields, fetchContexts, pathPrefix, null);
 
         ObjectMapper mapper = new ObjectMapper();
         if (typeNameStr != null) {

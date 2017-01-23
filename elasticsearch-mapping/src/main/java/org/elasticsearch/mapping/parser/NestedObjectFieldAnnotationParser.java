@@ -24,7 +24,7 @@ public class NestedObjectFieldAnnotationParser implements IPropertyAnnotationPar
     }
 
     @Override
-    public void parseAnnotation(NestedObject annotation, Map<String, Object> fieldDefinition, String pathPrefix, Indexable indexable) {
+    public void parseAnnotation(NestedObject annotation, Map<String, Object> fieldDefinition, String pathPrefix, String nestedPrefix, Indexable indexable) {
         if (fieldDefinition.get("type") != null) {
             LOGGER.info("Overriding mapping for field {} for class {} was defined as type {}", indexable.getName(), indexable.getDeclaringClassName(),
                     fieldDefinition.get("type"));
@@ -36,7 +36,8 @@ public class NestedObjectFieldAnnotationParser implements IPropertyAnnotationPar
         // nested types can provide replacement class to be managed. This can be usefull to override map default type for example.
         Class<?> replaceClass = annotation.nestedClass().equals(NestedObject.class) ? indexable.getType() : annotation.nestedClass();
         try {
-            this.fieldsMappingBuilder.parseFieldMappings(replaceClass, fieldDefinition, facets, filters, fetchContext, indexable.getName() + ".");
+            this.fieldsMappingBuilder.parseFieldMappings(replaceClass, fieldDefinition, facets, filters, fetchContext, indexable.getName() + ".",
+                    indexable.getName());
         } catch (IntrospectionException e) {
             LOGGER.error("Fail to parse nested class <" + replaceClass.getName() + ">", e);
         }

@@ -286,6 +286,7 @@ public class QueryHelper {
                 countRequestBuilder.setTypes(types);
             }
             countRequestBuilder.setQuery(this.queryBuilder);
+            String query = countRequestBuilder.toString();
             return countRequestBuilder.execute().actionGet();
         }
 

@@ -17,7 +17,7 @@ import org.elasticsearch.mapping.MappingException;
 public class NumberFieldAnnotationParser implements IPropertyAnnotationParser<NumberField> {
     private static final ESLogger LOGGER = Loggers.getLogger(MappingBuilder.class);
 
-    public void parseAnnotation(NumberField annotation, Map<String, Object> fieldDefinition, String pathPrefix,
+    public void parseAnnotation(NumberField annotation, Map<String, Object> fieldDefinition, String pathPrefix, String nestedPrefix,
             Indexable indexable) {
         if (fieldDefinition.get("type") != null) {
             LOGGER.info("Overriding mapping for field {} for class {} was defined as type {}", indexable.getName(), indexable.getDeclaringClassName(),

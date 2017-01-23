@@ -11,7 +11,7 @@ import org.elasticsearch.mapping.Indexable;
  * @author luc boutier
  */
 public class NullValueAnnotationParser implements IPropertyAnnotationParser<NullValue> {
-    public void parseAnnotation(NullValue annotation, Map<String, Object> fieldDefinition, String pathPrefix,
+    public void parseAnnotation(NullValue annotation, Map<String, Object> fieldDefinition, String pathPrefix, String nestedPrefix,
             Indexable indexable) {
         fieldDefinition.put("null_value", annotation.nullValue());
     }

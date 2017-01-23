@@ -29,7 +29,7 @@ public class MapKeyValueAnnotationParser implements IPropertyAnnotationParser<Ma
     }
 
     @Override
-    public void parseAnnotation(MapKeyValue annotation, Map<String, Object> fieldDefinition, String pathPrefix, Indexable indexable) {
+    public void parseAnnotation(MapKeyValue annotation, Map<String, Object> fieldDefinition, String pathPrefix, String nestedPrefix, Indexable indexable) {
         if (fieldDefinition.get("type") != null) {
             LOGGER.info("Overriding mapping for field {} for class {} was defined as type {}", indexable.getName(), indexable.getDeclaringClassName(),
                     fieldDefinition.get("type"));
@@ -88,7 +88,7 @@ public class MapKeyValueAnnotationParser implements IPropertyAnnotationParser<Ma
             Map<String, SourceFetchContext> fetchContext = Maps.newHashMap();
             try {
                 this.fieldsMappingBuilder.parseFieldMappings(mapValueType, valueFieldDefinition, facets, filters, fetchContext,
-                        indexable.getName() + ".value.");
+                        indexable.getName() + ".value.", nestedPrefix);
             } catch (IntrospectionException e) {
                 LOGGER.error("Fail to parse object class <" + mapValueType.getName() + ">", e);
             }

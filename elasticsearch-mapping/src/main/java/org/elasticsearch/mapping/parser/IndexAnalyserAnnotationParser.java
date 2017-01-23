@@ -11,7 +11,7 @@ import org.elasticsearch.mapping.Indexable;
  * @author luc boutier
  */
 public class IndexAnalyserAnnotationParser implements IPropertyAnnotationParser<IndexAnalyser> {
-    public void parseAnnotation(IndexAnalyser annotation, Map<String, Object> fieldDefinition, String pathPrefix,
+    public void parseAnnotation(IndexAnalyser annotation, Map<String, Object> fieldDefinition, String pathPrefix, String nestedPrefix,
             Indexable indexable) {
         fieldDefinition.put("index_analyzer", annotation.indexAnalyzer());
     }

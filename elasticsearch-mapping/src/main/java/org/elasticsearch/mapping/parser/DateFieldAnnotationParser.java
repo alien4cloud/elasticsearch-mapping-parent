@@ -17,7 +17,7 @@ import org.elasticsearch.mapping.MappingException;
 public class DateFieldAnnotationParser implements IPropertyAnnotationParser<DateField> {
     private static final ESLogger LOGGER = Loggers.getLogger(MappingBuilder.class);
 
-    public void parseAnnotation(DateField annotation, Map<String, Object> fieldDefinition, String pathPrefix, Indexable indexable) {
+    public void parseAnnotation(DateField annotation, Map<String, Object> fieldDefinition, String pathPrefix, String nestedPrefix, Indexable indexable) {
         if (fieldDefinition.get("type") != null) {
             LOGGER.info("Overriding mapping for field {} for class {} was defined as type {}", indexable.getName(), indexable.getDeclaringClassName(),
                     fieldDefinition.get("type"));

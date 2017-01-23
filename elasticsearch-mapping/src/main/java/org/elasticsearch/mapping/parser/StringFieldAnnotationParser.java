@@ -16,8 +16,7 @@ import org.elasticsearch.mapping.*;
 public class StringFieldAnnotationParser implements IPropertyAnnotationParser<StringField> {
     private static final ESLogger LOGGER = Loggers.getLogger(MappingBuilder.class);
 
-    public void parseAnnotation(StringField annotation, Map<String, Object> fieldDefinition, String pathPrefix,
-            Indexable indexable) {
+    public void parseAnnotation(StringField annotation, Map<String, Object> fieldDefinition, String pathPrefix, String nestedPrefix, Indexable indexable) {
         if (fieldDefinition.get("type") != null) {
             LOGGER.info("Overriding mapping for field {} for class {} was defined as type {}", indexable.getName(), indexable.getDeclaringClassName(),
                     fieldDefinition.get("type"));
@@ -58,7 +57,7 @@ public class StringFieldAnnotationParser implements IPropertyAnnotationParser<St
         if (annotation.ignoreAbove() > 0) {
             fieldDefinition.put("ignore_above", annotation.ignoreAbove());
         }
-        
+
         // FIXME annotation.positionOffsetGap();
     }
 }
