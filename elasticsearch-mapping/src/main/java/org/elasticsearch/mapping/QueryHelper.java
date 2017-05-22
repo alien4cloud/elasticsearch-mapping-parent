@@ -236,6 +236,7 @@ public class QueryHelper {
         }
 
         protected QueryBuilderHelper(MappingBuilder mappingBuilder, ElasticSearchClient esClient, String prefixField, String searchPrefix) {
+            this.prefixField = prefixField;
             this.queryBuilder = getOrMatchAll(searchPrefix, () -> QueryBuilders.prefixQuery(prefixField, searchPrefix));
             this.mappingBuilder = mappingBuilder;
             this.esClient = esClient;
@@ -259,7 +260,24 @@ public class QueryHelper {
         public QueryBuilderHelper types(Class<?>... classes) {
             // you must set classes before you can set filters for them.
             this.classes = classes;
+            wrapPrefixQueryIfNested();
             return this;
+        }
+
+        private void wrapPrefixQueryIfNested() {
+            if (prefixField == null) {
+                return;
+            }
+
+            List<IFilterBuilderHelper> filterBuilderHelpers = mappingBuilder.getFilters(classes[0].getName());
+            for (IFilterBuilderHelper filterBuilderHelper : filterBuilderHelpers) {
+                if (filterBuilderHelper.isNested() && prefixField.equals(filterBuilderHelper.getEsFieldName())) {
+                    this.queryBuilder = QueryBuilders.nestedQuery(filterBuilderHelper.getNestedPath(), queryBuilder);
+                    return;
+                }
+            }
+
+            return;
         }
 
         @Override
@@ -286,7 +304,6 @@ public class QueryHelper {
                 countRequestBuilder.setTypes(types);
             }
             countRequestBuilder.setQuery(this.queryBuilder);
-            String query = countRequestBuilder.toString();
             return countRequestBuilder.execute().actionGet();
         }
 
