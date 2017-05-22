@@ -120,6 +120,13 @@ public class QueryHelper {
          * @return The count response.
          */
         CountResponse count(String[] indices, String... types);
+
+        /**
+         * Return the current query builder.
+         * 
+         * @return The elasticsearch query builder.
+         */
+        QueryBuilder getQueryBuilder();
     }
 
     public interface IFilterableQueryBuilderHelper<T extends IFilterableQueryBuilderHelper> extends IQueryBuilderHelper<T> {
@@ -305,6 +312,11 @@ public class QueryHelper {
             }
             countRequestBuilder.setQuery(this.queryBuilder);
             return countRequestBuilder.execute().actionGet();
+        }
+
+        @Override
+        public QueryBuilder getQueryBuilder() {
+            return this.queryBuilder;
         }
 
         @Override

@@ -4,12 +4,13 @@
     <parent>
         <groupId>org.alien4cloud</groupId>
         <artifactId>elasticsearch-mapping-parent</artifactId>
-        <version>1.7.3</version>
+        <version>1.7.4</version>
     </parent>
 
     <artifactId>elasticsearch-annotations</artifactId>
     <name>Elastic search annotations</name>
-    <description>Annotations for elastic search that can be handled by the elasticsearch-mapping's MappingBuilder.</description>
+    <description>Annotations for elastic search that can be handled by the elasticsearch-mapping's MappingBuilder.
+    </description>
 
     <dependencies>
         <dependency>
