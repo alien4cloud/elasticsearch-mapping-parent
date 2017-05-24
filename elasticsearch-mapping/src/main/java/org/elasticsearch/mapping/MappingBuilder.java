@@ -7,19 +7,24 @@ import java.util.*;
 
 import org.elasticsearch.annotation.ESAll;
 import org.elasticsearch.annotation.ESObject;
+import org.elasticsearch.annotation.IndexAnalyserDefinition;
 import org.elasticsearch.annotation.TypeName;
+import org.elasticsearch.common.collect.Maps;
+import org.elasticsearch.common.lang3.ArrayUtils;
 import org.elasticsearch.util.AnnotationScanner;
 import org.elasticsearch.util.MapUtil;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonGenerationException;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * Helps to parse the ES annotations.
- * 
+ *
  * @author luc boutier
  */
 @Component
@@ -28,6 +33,7 @@ public class MappingBuilder {
     private FieldsMappingBuilder fieldsMappingBuilder = new FieldsMappingBuilder();
 
     private Map<String, String> classesMappings = new HashMap<String, String>();
+    private Map<String, String> settingsByClassName = new HashMap<String, String>();
     private Map<String, String> typeByClassName = new HashMap<String, String>();
 
     private Map<String, List<IFilterBuilderHelper>> filtersByClassName = new HashMap<String, List<IFilterBuilderHelper>>();
@@ -37,7 +43,7 @@ public class MappingBuilder {
     /**
      * Helper to return a valid index type from a class. Currently uses clazz.getSimpleName().toLowerCase();
      * Using the helper make sure this is done in a consistent way in different locations of the code.
-     * 
+     *
      * @param clazz The class for which to get an index type.
      * @return The index type.
      */
@@ -47,7 +53,7 @@ public class MappingBuilder {
 
     /**
      * Build mapping for the given packages.
-     * 
+     *
      * @param packages list of packages in which to look for {@link ESObject} annotated classes.
      * @throws IntrospectionException Java reflection usage related exception.
      * @throws IOException In case of an IO error while creating Json.
@@ -64,7 +70,7 @@ public class MappingBuilder {
 
     /**
      * Get the mapping json string for a given class.
-     * 
+     *
      * @param clazz The class for which to get the mapping.
      * @return The json mapping for this class.
      * @throws JsonGenerationException In case the mapping failed to be serialized to json.
@@ -75,15 +81,24 @@ public class MappingBuilder {
     public String getMapping(Class<?> clazz) throws JsonGenerationException, JsonMappingException, IntrospectionException, IOException {
         String classMapping = classesMappings.get(clazz.getName());
         if (classMapping == null) {
-            parseClassMapping(clazz, "");
+            parseClassAnnotations(clazz, "");
         }
         classMapping = classesMappings.get(clazz.getName());
         return classMapping;
     }
 
+    public String getIndexSettings(Class<?> clazz) throws JsonGenerationException, JsonMappingException, IntrospectionException, IOException {
+        String settings = settingsByClassName.get(clazz.getName());
+        if (settings == null) {
+            parseClassAnnotations(clazz, "");
+        }
+        settings = settingsByClassName.get(clazz.getName());
+        return settings;
+    }
+
     /**
      * Get the name of the type in elastic search for the given class.
-     * 
+     *
      * @param clazz The class for which to get the type.
      * @return The type name in elastic search.
      */
@@ -93,7 +108,7 @@ public class MappingBuilder {
 
     /**
      * Get the list of es fields that should be filtered in a filter search for the given class.
-     * 
+     *
      * @param clazz The class for which to get the facets.
      * @return The list of filters builders for this class.
      */
@@ -103,7 +118,7 @@ public class MappingBuilder {
 
     /**
      * Get the list of es fields that should be filtered in a filter search for the given class.
-     * 
+     *
      * @param className The name for which to get the facets.
      * @return The list of filters builders for this class.
      */
@@ -113,7 +128,7 @@ public class MappingBuilder {
 
     /**
      * Get the list of es fields that should be faceted in a facet search for the given class.
-     * 
+     *
      * @param clazz The class for which to get the facets.
      * @return The list of facet builders for this class.
      */
@@ -123,7 +138,7 @@ public class MappingBuilder {
 
     /**
      * Get the list of es fields that should be faceted in a facet search for the given class.
-     * 
+     *
      * @param className The name for which to get the facets.
      * @return The list of facet builders for this class.
      */
@@ -133,7 +148,7 @@ public class MappingBuilder {
 
     /**
      * Get the {@link SourceFetchContext} for a given fetch context.
-     * 
+     *
      * @param className The class for which to get the fetch context.
      * @param fetchContext The fetch context for which to get the field list.
      * @return The requested {@link SourceFetchContext} or null if no context match the given class and fetch context key.
@@ -149,11 +164,12 @@ public class MappingBuilder {
     private void initialize(String packageName) throws IntrospectionException, JsonGenerationException, JsonMappingException, IOException {
         Set<Class<?>> classSet = org.elasticsearch.util.AnnotationScanner.scan(packageName, ESObject.class);
         for (Class<?> clazz : classSet) {
-            parseClassMapping(clazz, "");
+            parseClassAnnotations(clazz, "");
         }
     }
 
-    public void parseClassMapping(Class<?> clazz, String pathPrefix) throws IntrospectionException, JsonGenerationException, JsonMappingException, IOException {
+    public void parseClassAnnotations(Class<?> clazz, String pathPrefix)
+            throws IntrospectionException, JsonGenerationException, JsonMappingException, IOException {
         ESObject esObject = AnnotationScanner.getAnnotation(ESObject.class, clazz);
         ESAll esAll = AnnotationScanner.getAnnotation(ESAll.class, clazz);
 
@@ -196,5 +212,35 @@ public class MappingBuilder {
         this.facetByClassName.put(clazz.getName(), facetFields);
         this.filtersByClassName.put(clazz.getName(), filteredFields);
         this.fetchSourceContextByClass.put(clazz.getName(), fetchContexts);
+
+        this.settingsByClassName.put(clazz.getName(), buildSettings(mapper, esObject.analyzerDefinitions()));
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
+    private static class AnalyserFields {
+        public String tokenizer;
+        public String type;
+        public String[] char_filter;
+        public String[] filter;
+        public String[] stopwords;
+    }
+
+    private String buildSettings(ObjectMapper mapper, IndexAnalyserDefinition[] customAnalyserDefinitions) throws JsonProcessingException {
+        if (ArrayUtils.isEmpty(customAnalyserDefinitions)) {
+            return null;
+        }
+
+        Map<Object, Object> analysers = Maps.newHashMap();
+        for (IndexAnalyserDefinition analyserDefinition : customAnalyserDefinitions) {
+            AnalyserFields analyserFields = new AnalyserFields();
+            analyserFields.char_filter = analyserDefinition.char_filter();
+            analyserFields.filter = analyserDefinition.filters();
+            analyserFields.stopwords = analyserDefinition.stopwords();
+            analyserFields.tokenizer = analyserDefinition.tokenizer();
+            analyserFields.type = analyserDefinition.type();
+            analysers.put(analyserDefinition.name(), analyserFields);
+        }
+
+        return "{\"analysis\":{\"analyzer\":" + mapper.writeValueAsString(analysers) + "}}";
     }
 }
