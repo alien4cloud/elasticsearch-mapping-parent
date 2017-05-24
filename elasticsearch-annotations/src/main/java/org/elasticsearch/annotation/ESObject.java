@@ -22,4 +22,6 @@ public @interface ESObject {
 	boolean source() default true;
 
 	boolean all() default true;
+
+	IndexAnalyserDefinition[] analyzerDefinitions() default {};
 }
