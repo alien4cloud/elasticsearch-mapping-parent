@@ -535,7 +535,7 @@ public class QueryHelper {
                         includes.addAll(sourceFetchContext.getIncludes());
                         excludes.addAll(sourceFetchContext.getExcludes());
                     } else {
-                        LOGGER.warn("Unable to find fetch context <" + fetchContext + "> for class <" + clazz.getName() + ">. It will be ignored.");
+                        LOGGER.debug("Unable to find fetch context <" + fetchContext + "> for class <" + clazz.getName() + ">. It will be ignored.");
                     }
                 }
             }
