@@ -1,11 +1,7 @@
 package org.elasticsearch.mapping;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.function.Supplier;
 
 import javax.annotation.Resource;
@@ -186,6 +182,11 @@ public class QueryHelper {
          * Set the aggregations for the given classes.
          */
         ISearchQueryBuilderHelper facets();
+
+        /**
+         * Set the aggregations for the given classes.
+         */
+        ISearchQueryBuilderHelper facets(List<IFacetBuilderHelper> facetBuilderHelpers);
 
         /**
          * Execute the given consumer to alter the search request builder.
@@ -547,19 +548,24 @@ public class QueryHelper {
 
         @Override
         public QueryBuilderHelper facets() {
+            return facets(new ArrayList<>());
+        }
+
+        @Override
+        public QueryBuilderHelper facets(List<IFacetBuilderHelper> facetBuilderHelpers) {
             Set<String> aggIds = Sets.newHashSet();
             for (Class<?> clazz : classes) {
                 if (filters == null) {
-                    addAggregations(new HashMap(), clazz.getName(), searchRequestBuilder, aggIds);
+                    addAggregations(new HashMap(), clazz.getName(), searchRequestBuilder, aggIds,facetBuilderHelpers);
                 } else {
-                    addAggregations(filters, clazz.getName(), searchRequestBuilder, aggIds);
+                    addAggregations(filters, clazz.getName(), searchRequestBuilder, aggIds,facetBuilderHelpers);
                 }
             }
             return this;
         }
 
-        private void addAggregations(Map<String, String[]> filters, String className, SearchRequestBuilder searchRequestBuilder, Set<String> aggIds) {
-            final List<AggregationBuilder> aggregations = buildAggregations(className, filters.keySet());
+        private void addAggregations(Map<String, String[]> filters, String className, SearchRequestBuilder searchRequestBuilder, Set<String> aggIds,List<IFacetBuilderHelper> facetBuilderHelpers) {
+            final List<AggregationBuilder> aggregations = buildAggregations(className, filters.keySet(),facetBuilderHelpers);
             for (AggregationBuilder aggregation : aggregations) {
                 if (!aggIds.contains(aggregation.getName())) {
                     aggIds.add(aggregation.getName());
@@ -575,9 +581,12 @@ public class QueryHelper {
          * @param filters The set of aggregations to exclude from the facet creation.
          * @return a {@link List} of {@link AggregationBuilder aggregation builders}.
          */
-        private List<AggregationBuilder> buildAggregations(String className, Set<String> filters) {
+        private List<AggregationBuilder> buildAggregations(String className, Set<String> filters,List<IFacetBuilderHelper> externalHelpers) {
             final List<AggregationBuilder> aggregationBuilders = new ArrayList<AggregationBuilder>();
             List<IFacetBuilderHelper> facetBuilderHelpers = mappingBuilder.getFacets(className);
+
+            // Add external Helpers
+            facetBuilderHelpers.addAll(externalHelpers);
 
             if (facetBuilderHelpers == null || facetBuilderHelpers.size() < 1) {
                 return aggregationBuilders;
