@@ -3,6 +3,8 @@ package org.elasticsearch.mapping;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.annotation.Resource;
 
@@ -583,19 +585,17 @@ public class QueryHelper {
          */
         private List<AggregationBuilder> buildAggregations(String className, Set<String> filters,List<IFacetBuilderHelper> externalHelpers) {
             final List<AggregationBuilder> aggregationBuilders = new ArrayList<AggregationBuilder>();
-            List<IFacetBuilderHelper> facetBuilderHelpers = mappingBuilder.getFacets(className);
 
-            // Add external Helpers
-            facetBuilderHelpers.addAll(externalHelpers);
+            List<IFacetBuilderHelper> facetBuilderHelpers = Stream.concat(
+                    mappingBuilder.getFacets(className).stream(),
+                    externalHelpers.stream()
+                ).collect(Collectors.toList());
 
             if (facetBuilderHelpers == null || facetBuilderHelpers.size() < 1) {
                 return aggregationBuilders;
             }
 
-            // FIXME: concurrent modifications here, to instruct
-            IFacetBuilderHelper[] IFacetBuilderHelpers = new IFacetBuilderHelper[facetBuilderHelpers.size()];
-            facetBuilderHelpers.toArray(IFacetBuilderHelpers);
-            for (IFacetBuilderHelper facetBuilderHelper : IFacetBuilderHelpers) {
+            for (IFacetBuilderHelper facetBuilderHelper : facetBuilderHelpers) {
                 if (filters == null || !filters.contains(facetBuilderHelper.getEsFieldName())) {
                     aggregationBuilders.addAll(facetBuilderHelper.buildFacets());
                 }
