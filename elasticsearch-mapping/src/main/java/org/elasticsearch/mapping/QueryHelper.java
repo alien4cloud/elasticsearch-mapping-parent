@@ -592,7 +592,10 @@ public class QueryHelper {
                 return aggregationBuilders;
             }
 
-            for (IFacetBuilderHelper facetBuilderHelper : facetBuilderHelpers) {
+            // FIXME: concurrent modifications here, to instruct
+            IFacetBuilderHelper[] IFacetBuilderHelpers = new IFacetBuilderHelper[facetBuilderHelpers.size()];
+            facetBuilderHelpers.toArray(IFacetBuilderHelpers);
+            for (IFacetBuilderHelper facetBuilderHelper : IFacetBuilderHelpers) {
                 if (filters == null || !filters.contains(facetBuilderHelper.getEsFieldName())) {
                     aggregationBuilders.addAll(facetBuilderHelper.buildFacets());
                 }
