@@ -586,10 +586,11 @@ public class QueryHelper {
         private List<AggregationBuilder> buildAggregations(String className, Set<String> filters,List<IFacetBuilderHelper> externalHelpers) {
             final List<AggregationBuilder> aggregationBuilders = new ArrayList<AggregationBuilder>();
 
-            List<IFacetBuilderHelper> facetBuilderHelpers = Stream.concat(
-                    mappingBuilder.getFacets(className).stream(),
-                    externalHelpers.stream()
-                ).collect(Collectors.toList());
+            List<IFacetBuilderHelper> facetBuilderHelpers = Lists.newArrayList();
+            facetBuilderHelpers.addAll(externalHelpers);
+            if (mappingBuilder.getFacets(className) != null) {
+                facetBuilderHelpers.addAll(mappingBuilder.getFacets(className));
+            }
 
             if (facetBuilderHelpers == null || facetBuilderHelpers.size() < 1) {
                 return aggregationBuilders;
