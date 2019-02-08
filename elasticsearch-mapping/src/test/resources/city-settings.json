@@ -1,1 +1,1 @@
-{"analysis":{"analyzer":{"lowerCaseAnalyser":{"tokenizer":"keyword","filters":["lowercase"]}}}}
+{"analysis":{"analyzer":{"lowerCaseAnalyser":{"tokenizer":"keyword","filter":["lowercase"]}}}}
