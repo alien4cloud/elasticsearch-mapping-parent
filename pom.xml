@@ -10,10 +10,13 @@
     <description>An object mapping framework for Elastic Search.</description>
 
     <properties>
-        <elasticsearch.version>1.7.0</elasticsearch.version>
-        <jackson.version>2.8.1</jackson.version>
+        <elasticsearch.version>2.0.0</elasticsearch.version>
+        <jackson.version>2.9.3</jackson.version>
         <spring.version>4.3.2.RELEASE</spring.version>
+    	<commons-lang.version>3.5</commons-lang.version>
+    	<commons-beanutils.version>1.9.3</commons-beanutils.version>
         <junit.version>4.12</junit.version>
+        <jna.version>4.1.0</jna.version>
 
         <java.version>1.8</java.version>
         <maven.compiler.version>2.3.2</maven.compiler.version>
@@ -31,6 +34,12 @@
                 <artifactId>elasticsearch</artifactId>
                 <version>${elasticsearch.version}</version>
             </dependency>
+    <dependency>
+        <groupId>net.java.dev.jna</groupId>
+        <artifactId>jna</artifactId>
+        <version>${jna.version}</version>
+    </dependency>
+
             <dependency>
                 <groupId>org.apache.lucene</groupId>
                 <artifactId>lucene-expressions</artifactId>
@@ -39,6 +48,26 @@
             <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
                 <artifactId>jackson-databind</artifactId>
+                <version>${jackson.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-core</artifactId>
+                <version>${jackson.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.dataformat</groupId>
+                <artifactId>jackson-dataformat-smile</artifactId>
+                <version>${jackson.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.dataformat</groupId>
+                <artifactId>jackson-dataformat-cbor</artifactId>
+                <version>${jackson.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.dataformat</groupId>
+                <artifactId>jackson-dataformat-yaml</artifactId>
                 <version>${jackson.version}</version>
             </dependency>
             <dependency>
@@ -52,7 +81,7 @@
                 <version>${junit.version}</version>
                 <scope>test</scope>
             </dependency>
-        </dependencies>
+		</dependencies>
     </dependencyManagement>
 
     <developers>

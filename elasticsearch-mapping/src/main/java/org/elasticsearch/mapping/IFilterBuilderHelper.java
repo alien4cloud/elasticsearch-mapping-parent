@@ -1,6 +1,5 @@
 package org.elasticsearch.mapping;
 
-import org.elasticsearch.index.query.FilterBuilder;
 import org.elasticsearch.index.query.QueryBuilder;
 
 public interface IFilterBuilderHelper {
@@ -33,7 +32,7 @@ public interface IFilterBuilderHelper {
      * @param value The value as String.
      * @return A filter builder.
      */
-    FilterBuilder buildFilter(String key, String... value);
+    QueryBuilder buildFilter(String key, String... value);
 
     /**
      * Build a query builder.

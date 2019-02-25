@@ -10,15 +10,31 @@
     <artifactId>elasticsearch-mapping</artifactId>
     <name>Elastic search mapping.</name>
     <description>Object mapping for elastic search.</description>
-
+    
     <dependencies>
         <dependency>
             <groupId>org.elasticsearch</groupId>
             <artifactId>elasticsearch</artifactId>
         </dependency>
+    <dependency>
+        <groupId>net.java.dev.jna</groupId>
+        <artifactId>jna</artifactId>
+    </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.dataformat</groupId>
+            <artifactId>jackson-dataformat-smile</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.dataformat</groupId>
+            <artifactId>jackson-dataformat-cbor</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.dataformat</groupId>
+            <artifactId>jackson-dataformat-yaml</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework</groupId>
@@ -40,5 +56,15 @@
             <version>${spring.version}</version>
             <scope>test</scope>
         </dependency>
+    	  <dependency>
+	        <groupId>org.apache.commons</groupId>
+        	<artifactId>commons-lang3</artifactId>
+    	    <version>${commons-lang.version}</version>
+	      </dependency>
+    	  <dependency>
+		    <groupId>commons-beanutils</groupId>
+    		<artifactId>commons-beanutils</artifactId>
+    	    <version>${commons-beanutils.version}</version>
+	      </dependency>
     </dependencies>
 </project>

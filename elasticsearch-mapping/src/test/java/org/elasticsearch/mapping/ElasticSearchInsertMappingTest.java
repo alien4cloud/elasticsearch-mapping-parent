@@ -1,6 +1,8 @@
 package org.elasticsearch.mapping;
 
+import java.beans.IntrospectionException;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.util.Map;
 
 import javax.annotation.Resource;
@@ -14,7 +16,7 @@ import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.SearchType;
-import org.elasticsearch.common.collect.Maps;
+import com.google.common.collect.Maps;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.mapping.model.Address;
@@ -44,9 +46,11 @@ public class ElasticSearchInsertMappingTest {
 
     @Test
     public void testMappingAndInsert() throws Exception {
+
         String indexName = Person.class.getSimpleName().toLowerCase();
         mappingBuilder.initialize("org.elasticsearch.mapping.model");
-        initIndexes(indexName, new Class[] { Person.class });
+		try {
+        	initIndexes(indexName, new Class[] { Person.class });
 
         esClient.waitForGreenStatus(indexName);
 
@@ -87,6 +91,11 @@ public class ElasticSearchInsertMappingTest {
         filters.put("address.city", new String[] { "Fontainebleau" });
         response = this.queryHelper.buildQuery().types(requestedTypes).filters(filters).prepareSearch(searchIndexes).execute(0, Integer.MAX_VALUE);
         Assert.assertEquals(1, response.getHits().getTotalHits());
+		} catch (Exception e) {
+			System.out.println ("Got e" + e.getMessage());
+			e.printStackTrace();
+			throw e;
+		}
     }
 
     public void initIndexes(String indexName, Class<?>[] classes) throws Exception {
@@ -110,9 +119,14 @@ public class ElasticSearchInsertMappingTest {
         }
     }
 
-    public void save(String indexName, Person data) throws JsonGenerationException, JsonMappingException, IOException {
+    public void save(String indexName, Person data) throws JsonGenerationException, JsonMappingException, IOException, IllegalAccessException, 
+														IntrospectionException, InvocationTargetException, NoSuchMethodException  {
         String json = jsonMapper.writeValueAsString(data);
-        esClient.getClient().prepareIndex(indexName, indexName).setOperationThreaded(false).setSource(json).setRefresh(true).execute().actionGet();
+		System.out.println (json);
+        //esClient.getClient().prepareIndex(indexName, indexName).setOperationThreaded(false).setSource(json).setRefresh(true).execute().actionGet();
+		String idValue = (new FieldsMappingBuilder()).getIdValue(data);
+		
+        esClient.getClient().prepareIndex(indexName, indexName, idValue).setSource(json).setRefresh(true).execute().actionGet();
     }
 
     public Person readById(String indexName, String id) throws JsonParseException, JsonMappingException, IOException {

@@ -4,9 +4,12 @@ import java.beans.IntrospectionException;
 import java.beans.Introspector;
 import java.beans.PropertyDescriptor;
 import java.lang.annotation.Annotation;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.*;
+
+import org.apache.commons.beanutils.PropertyUtils;
 
 import org.elasticsearch.annotation.*;
 import org.elasticsearch.annotation.query.*;
@@ -19,7 +22,6 @@ import org.springframework.util.ClassUtils;
 /**
  * Process fields in a class to fill-in the properties entry in the class definition map.
  * 
- * @author luc boutier
  */
 public class FieldsMappingBuilder {
     private static final ESLogger LOGGER = Loggers.getLogger(MappingBuilder.class);
@@ -64,11 +66,11 @@ public class FieldsMappingBuilder {
 
         if (pathPrefix == null || pathPrefix.isEmpty()) {
             // Id, routing and boost are valid only for root object.
-            processIdAnnotation(classDefinitionMap, esFieldName, indexable);
+            //processIdAnnotation(classDefinitionMap, esFieldName, indexable);
             processRoutingAnnotation(classDefinitionMap, esFieldName, indexable);
             processBoostAnnotation(classDefinitionMap, esFieldName, indexable);
             // Timestamp field annotation
-            processTimeStampAnnotation(classDefinitionMap, esFieldName, indexable);
+            //processTimeStampAnnotation(classDefinitionMap, esFieldName, indexable);
         }
 
         processFetchContextAnnotation(fetchContexts, esFieldName, indexable);
@@ -453,4 +455,22 @@ public class FieldsMappingBuilder {
 
         return pdMap;
     }
+
+    @SuppressWarnings("unchecked")
+    public String getIdValue (Object obj) throws IntrospectionException, IllegalAccessException, InvocationTargetException,
+												 NoSuchMethodException  {
+		String value = null;
+		Class<?> clazz = obj.getClass();
+		List<Indexable> indexables = getIndexables(clazz);
+
+        for (Indexable indexable : indexables) {
+        	Id id = indexable.getAnnotation(Id.class);
+        	if (id != null) {
+				String name = indexable.getName();
+				value = (String)(PropertyUtils.getSimpleProperty(obj, name));
+        	} 
+    	}
+		return value;
+	}
+
 }

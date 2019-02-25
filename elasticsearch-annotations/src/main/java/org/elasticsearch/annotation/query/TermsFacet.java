@@ -5,7 +5,7 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-import org.elasticsearch.search.facet.terms.TermsFacet.ComparatorType;
+//import org.elasticsearch.search.facet.terms.TermsFacet.ComparatorType;
 
 /**
  * <p>
@@ -47,7 +47,7 @@ public @interface TermsFacet {
      * 
      * @return The control on how the term facets are ordered.
      */
-    ComparatorType comparatorType() default ComparatorType.COUNT;
+//    ComparatorType comparatorType() default ComparatorType.COUNT;
 
     /**
      * Allow to get all the terms in the terms facet, ones that do not match a hit, will have a count of 0. Note, this

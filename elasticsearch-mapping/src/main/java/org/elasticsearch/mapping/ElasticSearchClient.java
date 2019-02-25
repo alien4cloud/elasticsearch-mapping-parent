@@ -5,13 +5,13 @@ import java.util.List;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 
+import org.elasticsearch.action.admin.cluster.health.ClusterHealthAction;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequestBuilder;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.unit.TimeValue;
@@ -44,10 +44,10 @@ public class ElasticSearchClient {
     public void initialize() {
         if (this.isClient && this.isTransportClient) {
             // when these both option are set, we use a transport client
-            Settings settings = ImmutableSettings.settingsBuilder()
+            Settings settings = Settings.settingsBuilder()
                 .put("cluster.name", this.clusterName)
                 .build();
-            TransportClient transportClient = new TransportClient(settings);
+            TransportClient transportClient = TransportClient.builder().settings(settings).build();
             for (InetSocketTransportAddress add : adresses) {
                 transportClient.addTransportAddress(add);
             }
@@ -91,7 +91,7 @@ public class ElasticSearchClient {
      * @return A {@link ClusterHealthResponse} that contains the cluster health after waiting maximum 5 minutes for green status.
      */
     public ClusterHealthResponse waitForGreenStatus(String... indices) {
-        ClusterHealthRequestBuilder builder = new ClusterHealthRequestBuilder(this.client.admin().cluster());
+        ClusterHealthRequestBuilder builder = new ClusterHealthRequestBuilder(this.client.admin().cluster(), ClusterHealthAction.INSTANCE);
         builder.setIndices(indices);
         builder.setWaitForGreenStatus();
         builder.setTimeout(TimeValue.timeValueSeconds(30));

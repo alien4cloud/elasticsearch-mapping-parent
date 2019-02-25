@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.elasticsearch.annotation.NestedObject;
-import org.elasticsearch.common.collect.Maps;
+import com.google.common.collect.Maps;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.mapping.*;

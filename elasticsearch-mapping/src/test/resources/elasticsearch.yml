@@ -156,11 +156,11 @@ path.data: target/esdata
 
 # Path to temporary files:
 #
-path.work: /target/eswork
+path.work: target/eswork
 
 # Path to log files:
 #
-path.logs: /target/eslogs
+path.logs: target/eslogs
 
 # Path to where plugins are installed:
 #

@@ -9,8 +9,8 @@ import org.elasticsearch.annotation.ESAll;
 import org.elasticsearch.annotation.ESObject;
 import org.elasticsearch.annotation.IndexAnalyserDefinition;
 import org.elasticsearch.annotation.TypeName;
-import org.elasticsearch.common.collect.Maps;
-import org.elasticsearch.common.lang3.ArrayUtils;
+import com.google.common.collect.Maps;
+import org.apache.commons.lang3.ArrayUtils;
 import org.elasticsearch.util.AnnotationScanner;
 import org.elasticsearch.util.MapUtil;
 import org.springframework.context.annotation.Scope;
@@ -198,7 +198,7 @@ public class MappingBuilder {
             classDefinitionMap.put("_all", MapUtil.getMap("enabled", esObject.all()));
         }
         classDefinitionMap.put("_source", MapUtil.getMap("enabled", esObject.source()));
-        classDefinitionMap.put("_type", MapUtil.getMap(new String[] { "store", "index" }, new Object[] { esObject.store(), esObject.index() }));
+        //classDefinitionMap.put("_type", MapUtil.getMap(new String[] { "store", "index" }, new Object[] { esObject.store(), esObject.index() }));
 
         this.fieldsMappingBuilder.parseFieldMappings(clazz, classDefinitionMap, facetFields, filteredFields, fetchContexts, pathPrefix, null);
 

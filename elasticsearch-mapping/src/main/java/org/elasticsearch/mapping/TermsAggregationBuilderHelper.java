@@ -3,12 +3,12 @@ package org.elasticsearch.mapping;
 import java.util.List;
 
 import org.elasticsearch.annotation.query.TermsFacet;
-import org.elasticsearch.common.collect.Lists;
+import com.google.common.collect.Lists;
 import org.elasticsearch.search.aggregations.AggregationBuilder;
 import org.elasticsearch.search.aggregations.AggregationBuilders;
 import org.elasticsearch.search.aggregations.bucket.missing.MissingBuilder;
 import org.elasticsearch.search.aggregations.bucket.terms.TermsBuilder;
-import org.elasticsearch.search.facet.terms.TermsFacet.ComparatorType;
+//import org.elasticsearch.search.facet.terms.TermsFacet.ComparatorType;
 
 /**
  * Build a term facet.
@@ -18,7 +18,7 @@ import org.elasticsearch.search.facet.terms.TermsFacet.ComparatorType;
 public class TermsAggregationBuilderHelper extends TermsFilterBuilderHelper implements IFacetBuilderHelper {
     private final int size;
     private final boolean allTerms;
-    private final ComparatorType comparatorType;
+    //private final ComparatorType comparatorType;
     private final String[] exclude;
 
     /**
@@ -33,7 +33,7 @@ public class TermsAggregationBuilderHelper extends TermsFilterBuilderHelper impl
         super(isAnalyzed, nestedPath, esFieldName);
         this.size = termsFacet.size();
         this.allTerms = termsFacet.allTerms();
-        this.comparatorType = termsFacet.comparatorType();
+        //this.comparatorType = termsFacet.comparatorType();
         this.exclude = termsFacet.exclude();
     }
 

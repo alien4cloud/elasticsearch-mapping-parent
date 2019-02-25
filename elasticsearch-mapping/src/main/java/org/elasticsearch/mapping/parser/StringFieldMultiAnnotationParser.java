@@ -5,7 +5,7 @@ import java.util.Map;
 
 import org.elasticsearch.annotation.StringField;
 import org.elasticsearch.annotation.StringFieldMulti;
-import org.elasticsearch.common.collect.Maps;
+import com.google.common.collect.Maps;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.mapping.*;

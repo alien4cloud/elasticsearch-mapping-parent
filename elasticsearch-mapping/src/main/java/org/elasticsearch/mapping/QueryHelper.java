@@ -13,13 +13,13 @@ import org.elasticsearch.action.count.CountResponse;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.SearchType;
-import org.elasticsearch.common.collect.Lists;
-import org.elasticsearch.common.collect.Maps;
-import org.elasticsearch.common.collect.Sets;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.index.query.FilterBuilder;
-import org.elasticsearch.index.query.FilterBuilders;
+//import org.elasticsearch.index.query.FilterBuilder;
+//import org.elasticsearch.index.query.FilterBuilders;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.index.query.functionscore.ScoreFunctionBuilders;
@@ -135,7 +135,7 @@ public class QueryHelper {
          * @param customFilter user provided filters.
          * @return current instance.
          */
-        T filters(FilterBuilder... customFilter);
+        T filters(QueryBuilder... customFilter);
 
         /**
          * Add filters to the current query.
@@ -144,7 +144,7 @@ public class QueryHelper {
          * @param customFilters user provided filters to add (using and clause) to the annotation based filters.
          * @return current instance.
          */
-        T filters(Map<String, String[]> filters, FilterBuilder... customFilters);
+        T filters(Map<String, String[]> filters, QueryBuilder... customFilters);
 
         /**
          * Add filters to the current query.
@@ -154,7 +154,7 @@ public class QueryHelper {
          * @param customFilters user provided filters to add (using and clause) to the annotation based filters.
          * @return current instance.
          */
-        T filters(Map<String, String[]> filters, Map<String, FilterValuesStrategy> filterStrategies, FilterBuilder... customFilters);
+        T filters(Map<String, String[]> filters, Map<String, FilterValuesStrategy> filterStrategies, QueryBuilder... customFilters);
 
         /**
          * 
@@ -333,18 +333,18 @@ public class QueryHelper {
         }
 
         @Override
-        public QueryBuilderHelper filters(FilterBuilder... customFilter) {
+        public QueryBuilderHelper filters(QueryBuilder... customFilter) {
             this.queryBuilder = addFilters(queryBuilder, Lists.newArrayList(customFilter));
             return this;
         }
 
         @Override
-        public QueryBuilderHelper filters(Map<String, String[]> filters, FilterBuilder... customFilters) {
+        public QueryBuilderHelper filters(Map<String, String[]> filters, QueryBuilder... customFilters) {
             return this.filters(filters, null, customFilters);
         }
 
         @Override
-        public QueryBuilderHelper filters(Map<String, String[]> filters, Map<String, FilterValuesStrategy> filterStrategies, FilterBuilder... customFilters) {
+        public QueryBuilderHelper filters(Map<String, String[]> filters, Map<String, FilterValuesStrategy> filterStrategies, QueryBuilder... customFilters) {
             this.filters = filters;
             if (classes != null && classes.length > 0) {
                 QueryBuilder filteredQueryBuilder = addFilters(this.queryBuilder, classes[0], filters, filterStrategies, customFilters);
@@ -359,13 +359,13 @@ public class QueryHelper {
         }
 
         private QueryBuilder addFilters(QueryBuilder query, Class<?> clazz, Map<String, String[]> filters, Map<String, FilterValuesStrategy> filterStrategies,
-                FilterBuilder... customFilters) {
+                QueryBuilder... customFilters) {
             if (clazz == null) {
                 return query;
             }
-            final List<FilterBuilder> esFilters = buildFilters(clazz.getName(), filters, filterStrategies);
+            final List<QueryBuilder> esFilters = buildFilters(clazz.getName(), filters, filterStrategies);
             if (customFilters != null) {
-                for (FilterBuilder customFilter : customFilters) {
+                for (QueryBuilder customFilter : customFilters) {
                     if (customFilter != null) {
                         esFilters.add(customFilter);
                     }
@@ -375,8 +375,8 @@ public class QueryHelper {
             return addFilters(query, esFilters);
         }
 
-        private QueryBuilder addFilters(QueryBuilder query, final List<FilterBuilder> esFilters) {
-            FilterBuilder filter = null;
+        private QueryBuilder addFilters(QueryBuilder query, final List<QueryBuilder> esFilters) {
+            QueryBuilder filter = null;
             if (esFilters.size() > 0) {
                 filter = getAndFilter(esFilters);
                 if (filter != null) {
@@ -386,8 +386,8 @@ public class QueryHelper {
             return query;
         }
 
-        private List<FilterBuilder> buildFilters(String className, Map<String, String[]> filters, Map<String, FilterValuesStrategy> filterStrategies) {
-            List<FilterBuilder> filterBuilders = new ArrayList<FilterBuilder>();
+        private List<QueryBuilder> buildFilters(String className, Map<String, String[]> filters, Map<String, FilterValuesStrategy> filterStrategies) {
+            List<QueryBuilder> filterBuilders = new ArrayList<QueryBuilder>();
 
             if (filters == null) {
                 return filterBuilders;
@@ -397,7 +397,7 @@ public class QueryHelper {
                 filterStrategies = Maps.newHashMap();
             }
 
-            Map<String, List<FilterBuilder>> nestedFilterBuilders = new HashMap<String, List<FilterBuilder>>();
+            Map<String, List<QueryBuilder>> nestedFilterBuilders = new HashMap<String, List<QueryBuilder>>();
             List<IFilterBuilderHelper> filterBuilderHelpers = mappingBuilder.getFilters(className);
             if (filterBuilderHelpers == null) {
                 return filterBuilders;
@@ -407,9 +407,9 @@ public class QueryHelper {
                 String esFieldName = filterBuilderHelper.getEsFieldName();
                 if (filters.containsKey(esFieldName)) {
                     if (filterBuilderHelper.isNested()) {
-                        List<FilterBuilder> nestedFilters = nestedFilterBuilders.get(filterBuilderHelper.getNestedPath());
+                        List<QueryBuilder> nestedFilters = nestedFilterBuilders.get(filterBuilderHelper.getNestedPath());
                         if (nestedFilters == null) {
-                            nestedFilters = new ArrayList<FilterBuilder>(3);
+                            nestedFilters = new ArrayList<QueryBuilder>(3);
                             nestedFilterBuilders.put(filterBuilderHelper.getNestedPath(), nestedFilters);
                         }
                         nestedFilters.addAll(buildFilters(filterBuilderHelper, esFieldName, filters.get(esFieldName), filterStrategies.get(esFieldName)));
@@ -419,29 +419,29 @@ public class QueryHelper {
                 }
             }
 
-            for (Entry<String, List<FilterBuilder>> nestedFilters : nestedFilterBuilders.entrySet()) {
-                filterBuilders.add(FilterBuilders.nestedFilter(nestedFilters.getKey(), getAndFilter(nestedFilters.getValue())));
+            for (Entry<String, List<QueryBuilder>> nestedFilters : nestedFilterBuilders.entrySet()) {
+                filterBuilders.add(QueryBuilders.nestedQuery(nestedFilters.getKey(), getAndFilter(nestedFilters.getValue())));
             }
 
             return filterBuilders;
         }
 
-        private List<FilterBuilder> buildFilters(IFilterBuilderHelper filterBuilderHelper, String esFieldName, String[] values, FilterValuesStrategy strategy) {
+        private List<QueryBuilder> buildFilters(IFilterBuilderHelper filterBuilderHelper, String esFieldName, String[] values, FilterValuesStrategy strategy) {
             if (strategy == null || FilterValuesStrategy.OR.equals(strategy)) {
                 return Lists.newArrayList(filterBuilderHelper.buildFilter(esFieldName, values));
             }
-            List<FilterBuilder> valuesFilters = Lists.newArrayList();
+            List<QueryBuilder> valuesFilters = Lists.newArrayList();
             for (String value : values) {
                 valuesFilters.add(filterBuilderHelper.buildFilter(esFieldName, value));
             }
             return valuesFilters;
         }
 
-        private FilterBuilder getAndFilter(List<FilterBuilder> filters) {
+        private QueryBuilder getAndFilter(List<QueryBuilder> filters) {
             if (filters.size() == 1) {
                 return filters.get(0);
             }
-            return FilterBuilders.andFilter(filters.toArray(new FilterBuilder[filters.size()]));
+            return QueryBuilders.andQuery(filters.toArray(new QueryBuilder[filters.size()]));
         }
 
         @Override
