@@ -39,7 +39,6 @@
         <artifactId>jna</artifactId>
         <version>${jna.version}</version>
     </dependency>
-
             <dependency>
                 <groupId>org.apache.lucene</groupId>
                 <artifactId>lucene-expressions</artifactId>

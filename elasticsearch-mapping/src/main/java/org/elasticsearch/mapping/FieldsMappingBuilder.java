@@ -6,6 +6,7 @@ import java.beans.PropertyDescriptor;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.*;
 
@@ -459,18 +460,27 @@ public class FieldsMappingBuilder {
     @SuppressWarnings("unchecked")
     public String getIdValue (Object obj) throws IntrospectionException, IllegalAccessException, InvocationTargetException,
 												 NoSuchMethodException  {
-		String value = null;
-		Class<?> clazz = obj.getClass();
-		List<Indexable> indexables = getIndexables(clazz);
+	String value = null;
+	Class<?> clazz = obj.getClass();
+	List<Indexable> indexables = getIndexables(clazz);
 
-        for (Indexable indexable : indexables) {
-        	Id id = indexable.getAnnotation(Id.class);
-        	if (id != null) {
-				String name = indexable.getName();
-				value = (String)(PropertyUtils.getSimpleProperty(obj, name));
-        	} 
-    	}
-		return value;
+	for (Indexable indexable : indexables) {
+		Id id = indexable.getAnnotation(Id.class);
+		if (id != null) {
+			String name = indexable.getName();
+			value = (String)(PropertyUtils.getSimpleProperty(obj, name));
+		}			 
 	}
+
+	if (value == null) {
+		try  {
+			Method getIdMethod = clazz.getMethod ("getId");
+			Object oresult = getIdMethod.invoke(obj);
+			value = (String)oresult;
+		} catch (Exception e) {}
+	}
+
+	return value;
+    }
 
 }
