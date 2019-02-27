@@ -240,7 +240,8 @@ public class QueryHelper {
         }
 
         protected QueryBuilderHelper(MappingBuilder mappingBuilder, ElasticSearchClient esClient, int maxExpansions, String searchQuery) {
-            this.queryBuilder = getOrMatchAll(searchQuery, () -> QueryBuilders.matchPhrasePrefixQuery("_all", searchQuery).maxExpansions(maxExpansions));
+            this.queryBuilder = getOrMatchAll(searchQuery, () -> QueryBuilders.prefixQuery("_all", searchQuery));
+            //this.queryBuilder = getOrMatchAll(searchQuery, () -> QueryBuilders.matchPhrasePrefixQuery("_all", searchQuery).maxExpansions(maxExpansions));
             this.mappingBuilder = mappingBuilder;
             this.esClient = esClient;
         }
