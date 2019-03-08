@@ -80,16 +80,16 @@ public class ElasticSearchInsertMappingTest {
 
         Map<String, String[]> filters = Maps.newHashMap();
 
-        response = this.queryHelper.buildQuery().types(requestedTypes).filters(filters).prepareSearch(searchIndexes).execute(0, Integer.MAX_VALUE);
+        response = this.queryHelper.buildQuery().types(requestedTypes).filters(filters).prepareSearch(searchIndexes).execute(0, 10000);
         Assert.assertEquals(2, response.getHits().getTotalHits());
         filters.put("address.city", new String[] { "Paris" });
-        response = this.queryHelper.buildQuery().types(requestedTypes).filters(filters).prepareSearch(searchIndexes).execute(0, Integer.MAX_VALUE);
+        response = this.queryHelper.buildQuery().types(requestedTypes).filters(filters).prepareSearch(searchIndexes).execute(0, 10000);
         Assert.assertEquals(1, response.getHits().getTotalHits());
         filters.put("address.city", new String[] { "Issy" });
-        response = this.queryHelper.buildQuery().types(requestedTypes).filters(filters).prepareSearch(searchIndexes).execute(0, Integer.MAX_VALUE);
+        response = this.queryHelper.buildQuery().types(requestedTypes).filters(filters).prepareSearch(searchIndexes).execute(0, 10000);
         Assert.assertEquals(0, response.getHits().getTotalHits());
         filters.put("address.city", new String[] { "Fontainebleau" });
-        response = this.queryHelper.buildQuery().types(requestedTypes).filters(filters).prepareSearch(searchIndexes).execute(0, Integer.MAX_VALUE);
+        response = this.queryHelper.buildQuery().types(requestedTypes).filters(filters).prepareSearch(searchIndexes).execute(0, 10000);
         Assert.assertEquals(1, response.getHits().getTotalHits());
 		} catch (Exception e) {
 			System.out.println ("Got e" + e.getMessage());

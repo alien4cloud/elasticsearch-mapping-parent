@@ -20,6 +20,7 @@ import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 //import org.elasticsearch.index.query.FilterBuilder;
 //import org.elasticsearch.index.query.FilterBuilders;
+import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.index.query.functionscore.ScoreFunctionBuilders;
@@ -379,10 +380,17 @@ public class QueryHelper {
         private QueryBuilder addFilters(QueryBuilder query, final List<QueryBuilder> esFilters) {
             QueryBuilder filter = null;
             if (esFilters.size() > 0) {
+/**********************
                 filter = getAndFilter(esFilters);
                 if (filter != null) {
                     query = QueryBuilders.filteredQuery(query, filter);
                 }
+***********************/
+                BoolQueryBuilder result = QueryBuilders.boolQuery().must(query);
+                for (QueryBuilder esFilter : esFilters) {
+                   result = result.must(esFilter);
+                }
+                query = result;
             }
             return query;
         }

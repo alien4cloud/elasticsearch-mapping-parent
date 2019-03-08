@@ -230,7 +230,8 @@ public class FieldsMappingBuilder {
                 path = path.trim();
                 addFilter(classFilters, nestedPrefix, esFieldName, indexable, path, isAnalyzed(indexable, null));
                 for (String alternateFieldName : alternateFieldNames(indexable)) {
-                    addFilter(classFilters, nestedPrefix, alternateFieldName, indexable, path, isAnalyzed(indexable, alternateFieldName));
+                    //addFilter(classFilters, nestedPrefix, alternateFieldName, indexable, path, isAnalyzed(indexable, alternateFieldName));
+                    addFilter(classFilters, nestedPrefix, esFieldName + "." + alternateFieldName, indexable, path, isAnalyzed(indexable, alternateFieldName));
                 }
             }
             return;

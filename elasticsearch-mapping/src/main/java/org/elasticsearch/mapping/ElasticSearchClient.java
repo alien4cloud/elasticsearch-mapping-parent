@@ -104,7 +104,7 @@ public class ElasticSearchClient {
         LOGGER.debug("getNumberOfNodes         : {}", response.getNumberOfNodes());
         LOGGER.debug("getRelocatingShards      : {}", response.getRelocatingShards());
         LOGGER.debug("getUnassignedShards      : {}", response.getUnassignedShards());
-        LOGGER.debug("getAllValidationFailures : {}", response.getAllValidationFailures());
+        //LOGGER.debug("getAllValidationFailures : {}", response.getAllValidationFailures());
         return response;
     }
 
