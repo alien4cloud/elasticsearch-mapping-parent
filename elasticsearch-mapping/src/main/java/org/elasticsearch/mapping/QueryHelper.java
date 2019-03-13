@@ -380,17 +380,10 @@ public class QueryHelper {
         private QueryBuilder addFilters(QueryBuilder query, final List<QueryBuilder> esFilters) {
             QueryBuilder filter = null;
             if (esFilters.size() > 0) {
-/**********************
                 filter = getAndFilter(esFilters);
                 if (filter != null) {
                     query = QueryBuilders.filteredQuery(query, filter);
                 }
-***********************/
-                BoolQueryBuilder result = QueryBuilders.boolQuery().must(query);
-                for (QueryBuilder esFilter : esFilters) {
-                   result = result.must(esFilter);
-                }
-                query = result;
             }
             return query;
         }
