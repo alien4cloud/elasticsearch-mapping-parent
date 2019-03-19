@@ -21,6 +21,9 @@ import org.elasticsearch.util.AddressParserUtil;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import com.floragunn.searchguard.ssl.SearchGuardSSLPlugin;
+import com.floragunn.searchguard.ssl.util.SSLConfigConstants;
+
 /**
  * Prepare the node to work with elastic search.
  * 
@@ -39,15 +42,31 @@ public class ElasticSearchClient {
     private String clusterName;
     private boolean resetData = false;
     private Client client;
+    private boolean transportSSL = false;
+    private String keystore = null;
+    private String truststore = null;
+    private String keystorePassword = null;
+    private String truststorePassword = null;
 
     @PostConstruct
     public void initialize() {
         if (this.isClient && this.isTransportClient) {
             // when these both option are set, we use a transport client
-            Settings settings = Settings.settingsBuilder()
-                .put("cluster.name", this.clusterName)
-                .build();
-            TransportClient transportClient = TransportClient.builder().settings(settings).build();
+            Settings.Builder settingsBuilder = Settings.settingsBuilder()
+                .put("cluster.name", this.clusterName);
+            if (transportSSL) {
+               settingsBuilder = settingsBuilder
+                       .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_FILEPATH, this.keystore)
+                       .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, this.truststore)
+                       .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_PASSWORD, this.keystorePassword)
+                       .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_TRUSTSTORE_PASSWORD, this.truststorePassword);
+            }
+            Settings settings = settingsBuilder.build();
+            TransportClient.Builder transportClientBuilder =  TransportClient.builder().settings(settings);
+            if (transportSSL) {
+               transportClientBuilder = transportClientBuilder.addPlugin(SearchGuardSSLPlugin.class);
+            }
+            TransportClient transportClient = transportClientBuilder.build();
             for (InetSocketTransportAddress add : adresses) {
                 transportClient.addTransportAddress(add);
             }
@@ -137,4 +156,32 @@ public class ElasticSearchClient {
     public void setResetData(final boolean resetData) {
         this.resetData = resetData;
     }
+
+    @Value("#{elasticsearchConfig['searchguard.ssl.transport.enabled']}")
+    public void setTransportSSL(Boolean transportSSL) {
+        if (transportSSL != null) {
+           this.transportSSL = transportSSL.booleanValue();
+        }
+    }
+
+    @Value("#{elasticsearchConfig['searchguard.ssl.transport.keystore_filepath']}")
+    public void setKeystore(final String keystore) {
+        this.keystore = keystore;
+    }
+
+    @Value("#{elasticsearchConfig['searchguard.ssl.transport.truststore_filepath']}")
+    public void setTruststore(final String truststore) {
+        this.truststore = truststore;
+    }
+
+    @Value("#{elasticsearchConfig['searchguard.ssl.transport.keystore_password']}")
+    public void setKeystorePassword(final String password) {
+        this.keystorePassword = password;
+    }
+
+    @Value("#{elasticsearchConfig['searchguard.ssl.transport.truststore_password']}")
+    public void setTruststorePassword(final String password) {
+        this.truststorePassword = password;
+    }
+
 }
