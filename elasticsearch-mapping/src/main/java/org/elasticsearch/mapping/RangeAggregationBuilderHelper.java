@@ -6,7 +6,7 @@ import java.util.List;
 import org.elasticsearch.annotation.query.RangeFacet;
 import org.elasticsearch.search.aggregations.AggregationBuilder;
 import org.elasticsearch.search.aggregations.AggregationBuilders;
-import org.elasticsearch.search.aggregations.bucket.range.RangeBuilder;
+import org.elasticsearch.search.aggregations.bucket.range.RangeAggregationBuilder;
 
 /**
  * Build a range facet aggregation.
@@ -30,7 +30,7 @@ public class RangeAggregationBuilderHelper extends RangeFilterBuilderHelper impl
 
     @Override
     public List<AggregationBuilder> buildFacets() {
-        RangeBuilder rangeFacetBuilder = AggregationBuilders.range(getEsFieldName()).field(getEsFieldName()).addUnboundedFrom(this.ranges[0]);
+        RangeAggregationBuilder rangeFacetBuilder = AggregationBuilders.range(getEsFieldName()).field(getEsFieldName()).addUnboundedFrom(this.ranges[0]);
         int i = 1;
         for (; i < this.ranges.length - 2; i += 2) {
             rangeFacetBuilder.addRange(this.ranges[i], this.ranges[i + 1]);

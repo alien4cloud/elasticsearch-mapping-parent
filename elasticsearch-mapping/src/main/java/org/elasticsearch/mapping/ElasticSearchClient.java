@@ -10,13 +10,10 @@ import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequestBuilder
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.transport.TransportClient;
-import org.elasticsearch.common.logging.ESLogger;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.node.Node;
-import org.elasticsearch.node.NodeBuilder;
+import org.elasticsearch.transport.client.PreBuiltTransportClient;
 import org.elasticsearch.util.AddressParserUtil;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -24,17 +21,18 @@ import org.springframework.stereotype.Component;
 import com.floragunn.searchguard.ssl.SearchGuardSSLPlugin;
 import com.floragunn.searchguard.ssl.util.SSLConfigConstants;
 
+import lombok.extern.slf4j.Slf4j;
+
 /**
  * Prepare the node to work with elastic search.
  * 
  * @author luc boutier
  */
 @Component
+@Slf4j
 public class ElasticSearchClient {
 
-    private static final ESLogger LOGGER = Loggers.getLogger(MappingBuilder.class);
-
-    private Node node;
+//    private Node node;
     private boolean isClient;
     private boolean isTransportClient;
     private List<InetSocketTransportAddress> adresses;
@@ -52,7 +50,7 @@ public class ElasticSearchClient {
     public void initialize() {
         if (this.isClient && this.isTransportClient) {
             // when these both option are set, we use a transport client
-            Settings.Builder settingsBuilder = Settings.settingsBuilder()
+            Settings.Builder settingsBuilder = Settings.builder()
                 .put("cluster.name", this.clusterName);
             if (transportSSL) {
                settingsBuilder = settingsBuilder
@@ -62,25 +60,28 @@ public class ElasticSearchClient {
                        .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_TRUSTSTORE_PASSWORD, this.truststorePassword);
             }
             Settings settings = settingsBuilder.build();
-            TransportClient.Builder transportClientBuilder =  TransportClient.builder().settings(settings);
-            if (transportSSL) {
-               transportClientBuilder = transportClientBuilder.addPlugin(SearchGuardSSLPlugin.class);
+            TransportClient transportClient;
+            if (!transportSSL) {
+               transportClient =  new PreBuiltTransportClient(settings);
+            } else {
+               transportClient =  new PreBuiltTransportClient(settings, SearchGuardSSLPlugin.class);
             }
-            TransportClient transportClient = transportClientBuilder.build();
             for (InetSocketTransportAddress add : adresses) {
                 transportClient.addTransportAddress(add);
             }
             this.client = transportClient;
-        } else {
+        }  else {
+/************************
             // when only 'client' option is set, a node without data is initialized and joins the cluster
             this.node = NodeBuilder.nodeBuilder().client(this.isClient).clusterName(this.clusterName).local(this.isLocal).node();
             this.client = node.client();
-        }
+***************************/
+        } 
 
 //        if (this.resetData) { // removes all indices from elastic search. For Integration testing only.
             // this.node.client().admin().indices().prepareDelete().execute().actionGet();
 //        }
-        LOGGER.info("Initialized ElasticSearch client for cluster <" + this.clusterName + ">");
+        log.info("Initialized ElasticSearch client for cluster <" + this.clusterName + ">");
     }
 
     @PreDestroy
@@ -88,10 +89,12 @@ public class ElasticSearchClient {
         if (client != null) {
             client.close();
         }
+/***
         if (node != null) {
             node.close();
         }
-        LOGGER.info("Closed ElasticSearch client for cluster <" + this.clusterName + ">");
+****/
+        log.info("Closed ElasticSearch client for cluster <" + this.clusterName + ">");
     }
 
     /**
@@ -101,6 +104,15 @@ public class ElasticSearchClient {
      */
     public Client getClient() {
         return this.client;
+    }
+
+    /**
+     * Set client (for tests)
+     *  
+     *  @param client ES client
+     */
+    public void setClient (Client client) {
+        this.client = client;
     }
 
     /**
@@ -115,14 +127,14 @@ public class ElasticSearchClient {
         builder.setWaitForGreenStatus();
         builder.setTimeout(TimeValue.timeValueSeconds(30));
         ClusterHealthResponse response = builder.execute().actionGet();
-        LOGGER.debug("getStatus                : {}", response.getStatus());
-        LOGGER.debug("getActivePrimaryShards   : {}", response.getActivePrimaryShards());
-        LOGGER.debug("getActiveShards          : {}", response.getActiveShards());
-        LOGGER.debug("getInitializingShards    : {}", response.getInitializingShards());
-        LOGGER.debug("getNumberOfDataNodes     : {}", response.getNumberOfDataNodes());
-        LOGGER.debug("getNumberOfNodes         : {}", response.getNumberOfNodes());
-        LOGGER.debug("getRelocatingShards      : {}", response.getRelocatingShards());
-        LOGGER.debug("getUnassignedShards      : {}", response.getUnassignedShards());
+        log.debug("getStatus                : {}", response.getStatus());
+        log.debug("getActivePrimaryShards   : {}", response.getActivePrimaryShards());
+        log.debug("getActiveShards          : {}", response.getActiveShards());
+        log.debug("getInitializingShards    : {}", response.getInitializingShards());
+        log.debug("getNumberOfDataNodes     : {}", response.getNumberOfDataNodes());
+        log.debug("getNumberOfNodes         : {}", response.getNumberOfNodes());
+        log.debug("getRelocatingShards      : {}", response.getRelocatingShards());
+        log.debug("getUnassignedShards      : {}", response.getUnassignedShards());
         //LOGGER.debug("getAllValidationFailures : {}", response.getAllValidationFailures());
         return response;
     }

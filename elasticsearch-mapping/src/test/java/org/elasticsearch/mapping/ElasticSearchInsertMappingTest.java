@@ -3,6 +3,7 @@ package org.elasticsearch.mapping;
 import java.beans.IntrospectionException;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
 import java.util.Map;
 
 import javax.annotation.Resource;
@@ -17,12 +18,20 @@ import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.SearchType;
 import com.google.common.collect.Maps;
+import org.elasticsearch.common.network.NetworkModule;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.client.Client;
+import org.elasticsearch.env.Environment;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.mapping.model.Address;
 import org.elasticsearch.mapping.model.Person;
 import org.elasticsearch.search.sort.SortBuilders;
+import org.elasticsearch.node.MockNode;
+import org.elasticsearch.plugins.Plugin;
+import org.elasticsearch.transport.MockTcpTransportPlugin;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.test.context.ContextConfiguration;
@@ -43,6 +52,30 @@ public class ElasticSearchInsertMappingTest {
     @Resource
     private QueryHelper queryHelper;
     private final ObjectMapper jsonMapper = new ObjectMapper();
+
+    @Before
+    public void setUp() throws Exception {
+      try {
+         Settings settings = Settings.builder().put(Environment.PATH_HOME_SETTING.getKey(), "target/eshome")
+                                                .put("transport.type", MockTcpTransportPlugin.MOCK_TCP_TRANSPORT_NAME)
+                                                .put(NetworkModule.HTTP_ENABLED.getKey(), false)
+                                                .build();
+         ArrayList<Class<? extends Plugin>> plugins = new ArrayList<Class<? extends Plugin>>();
+         plugins.add (MockTcpTransportPlugin.class);
+         MockNode node = new MockNode(settings, plugins);
+         Client client = null;
+         node.start();
+         client = node.client();
+         esClient.setClient(client);
+/***
+         super.setUp();
+         esClient.setClient(client());
+***/
+      } catch (Exception e) {
+         System.out.println ("Got " + e.getMessage());
+         e.printStackTrace();
+      }
+    }
 
     @Test
     public void testMappingAndInsert() throws Exception {
@@ -125,8 +158,8 @@ public class ElasticSearchInsertMappingTest {
 		System.out.println (json);
         //esClient.getClient().prepareIndex(indexName, indexName).setOperationThreaded(false).setSource(json).setRefresh(true).execute().actionGet();
 		String idValue = (new FieldsMappingBuilder()).getIdValue(data);
-		
-        esClient.getClient().prepareIndex(indexName, indexName, idValue).setSource(json).setRefresh(true).execute().actionGet();
+
+        esClient.getClient().prepareIndex(indexName, indexName, idValue).setSource(json).setRefreshPolicy("IMMEDIATE").execute().actionGet();
     }
 
     public Person readById(String indexName, String id) throws JsonParseException, JsonMappingException, IOException {

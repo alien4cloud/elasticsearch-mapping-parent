@@ -3,24 +3,23 @@ package org.elasticsearch.mapping.parser;
 import java.util.Map;
 
 import org.elasticsearch.annotation.NumberField;
-import org.elasticsearch.common.logging.ESLogger;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.mapping.Indexable;
 import org.elasticsearch.mapping.MappingBuilder;
 import org.elasticsearch.mapping.MappingException;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Parse a {@link NumberField} annotation.
  * 
  * @author luc boutier
  */
+@Slf4j
 public class NumberFieldAnnotationParser implements IPropertyAnnotationParser<NumberField> {
-    private static final ESLogger LOGGER = Loggers.getLogger(MappingBuilder.class);
 
     public void parseAnnotation(NumberField annotation, Map<String, Object> fieldDefinition, String pathPrefix, String nestedPrefix,
             Indexable indexable) {
         if (fieldDefinition.get("type") != null) {
-            LOGGER.info("Overriding mapping for field {} for class {} was defined as type {}", indexable.getName(), indexable.getDeclaringClassName(),
+            log.info("Overriding mapping for field {} for class {} was defined as type {}", indexable.getName(), indexable.getDeclaringClassName(),
                     fieldDefinition.get("type"));
             fieldDefinition.clear();
         }

@@ -4,20 +4,20 @@ import java.lang.annotation.Annotation;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.elasticsearch.common.logging.ESLogger;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.mapping.MappingBuilder;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;
 import org.springframework.core.type.filter.AnnotationTypeFilter;
+
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Utility to scan a package for classes with a given annotation.
  * 
  * @author Luc Boutier
  */
+@Slf4j
 public final class AnnotationScanner {
-    private static final ESLogger LOGGER = Loggers.getLogger(MappingBuilder.class);
 
     /** Utility classes should have private constructor. */
     private AnnotationScanner() {
@@ -39,17 +39,17 @@ public final class AnnotationScanner {
 
         Set<Class<?>> classSet = new HashSet<Class<?>>();
         for (BeanDefinition beanDef : beanSet) {
-            LOGGER.debug("found candidate bean = " + beanDef.getBeanClassName());
+            log.debug("found candidate bean = " + beanDef.getBeanClassName());
 
             Class<?> clazz;
             try {
                 clazz = Class.forName(beanDef.getBeanClassName(), true, Thread.currentThread().getContextClassLoader());
                 if (clazz.isAnnotationPresent(anno)) {
-                    LOGGER.debug("found annotated class, " + clazz.getName());
+                    log.debug("found annotated class, " + clazz.getName());
                     classSet.add(clazz);
                 }
             } catch (ClassNotFoundException e) {
-                LOGGER.error("exception while scanning classpath for annotated classes", e);
+                log.error("exception while scanning classpath for annotated classes", e);
             }
         }
 

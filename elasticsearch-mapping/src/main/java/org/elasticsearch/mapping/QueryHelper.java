@@ -8,16 +8,15 @@ import java.util.stream.Stream;
 
 import javax.annotation.Resource;
 
-import org.elasticsearch.action.count.CountRequestBuilder;
-import org.elasticsearch.action.count.CountResponse;
+import org.apache.lucene.search.join.ScoreMode;
+//import org.elasticsearch.action.count.CountRequestBuilder;
+//import org.elasticsearch.action.count.CountResponse;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.SearchType;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import org.elasticsearch.common.logging.ESLogger;
-import org.elasticsearch.common.logging.Loggers;
 //import org.elasticsearch.index.query.FilterBuilder;
 //import org.elasticsearch.index.query.FilterBuilders;
 import org.elasticsearch.index.query.BoolQueryBuilder;
@@ -25,12 +24,14 @@ import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.index.query.functionscore.ScoreFunctionBuilders;
 import org.elasticsearch.search.aggregations.AggregationBuilder;
-import org.elasticsearch.search.aggregations.metrics.tophits.TopHitsBuilder;
+import org.elasticsearch.search.aggregations.metrics.tophits.TopHitsAggregationBuilder;
 import org.elasticsearch.search.sort.FieldSortBuilder;
 import org.elasticsearch.search.sort.SortBuilders;
 import org.elasticsearch.search.sort.SortOrder;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Helper class for queries with Elastic Search.
@@ -38,8 +39,8 @@ import org.springframework.stereotype.Component;
  * @author luc boutier
  */
 @Component
+@Slf4j
 public class QueryHelper {
-    private static final ESLogger LOGGER = Loggers.getLogger(QueryHelper.class);
 
     @Resource
     private MappingBuilder mappingBuilder;
@@ -118,7 +119,7 @@ public class QueryHelper {
          * @param types The elastic search types on which to perform count.
          * @return The count response.
          */
-        CountResponse count(String[] indices, String... types);
+        SearchResponse count(String[] indices, String... types);
 
         /**
          * Return the current query builder.
@@ -221,7 +222,7 @@ public class QueryHelper {
          * @param topHitsBuilder The top hits aggregation builder on which to add fetch context include and excludes.
          * @return The search query builder helper with the top
          */
-        ISearchQueryBuilderHelper fetchContext(String fetchContext, TopHitsBuilder topHitsBuilder);
+        ISearchQueryBuilderHelper fetchContext(String fetchContext, TopHitsAggregationBuilder topHitsBuilder);
     }
 
     public static class QueryBuilderHelper implements ISearchQueryBuilderHelper {
@@ -284,7 +285,7 @@ public class QueryHelper {
             List<IFilterBuilderHelper> filterBuilderHelpers = mappingBuilder.getFilters(classes[0].getName());
             for (IFilterBuilderHelper filterBuilderHelper : filterBuilderHelpers) {
                 if (filterBuilderHelper.isNested() && prefixField.equals(filterBuilderHelper.getEsFieldName())) {
-                    this.queryBuilder = QueryBuilders.nestedQuery(filterBuilderHelper.getNestedPath(), queryBuilder);
+                    this.queryBuilder = QueryBuilders.nestedQuery(filterBuilderHelper.getNestedPath(), queryBuilder, ScoreMode.None);
                     return;
                 }
             }
@@ -310,12 +311,12 @@ public class QueryHelper {
         }
 
         @Override
-        public CountResponse count(String[] indices, String... types) {
-            CountRequestBuilder countRequestBuilder = esClient.getClient().prepareCount(indices);
+        public SearchResponse count(String[] indices, String... types) {
+            SearchRequestBuilder countRequestBuilder = esClient.getClient().prepareSearch(indices);
             if (types != null && types.length > 0) {
                 countRequestBuilder.setTypes(types);
             }
-            countRequestBuilder.setQuery(this.queryBuilder);
+            countRequestBuilder.setSize(0).setQuery(this.queryBuilder);
             return countRequestBuilder.execute().actionGet();
         }
 
@@ -378,14 +379,22 @@ public class QueryHelper {
         }
 
         private QueryBuilder addFilters(QueryBuilder query, final List<QueryBuilder> esFilters) {
-            QueryBuilder filter = null;
+            //QueryBuilder filter = null;
+            BoolQueryBuilder result = null;
             if (esFilters.size() > 0) {
+/***
                 filter = getAndFilter(esFilters);
                 if (filter != null) {
                     query = QueryBuilders.filteredQuery(query, filter);
                 }
+***/
+               result = QueryBuilders.boolQuery().must(query);
+               for (QueryBuilder esFilter : esFilters) {
+                  result.filter(esFilter);
+               }
             }
-            return query;
+            //return query;
+            return result;
         }
 
         private List<QueryBuilder> buildFilters(String className, Map<String, String[]> filters, Map<String, FilterValuesStrategy> filterStrategies) {
@@ -422,7 +431,7 @@ public class QueryHelper {
             }
 
             for (Entry<String, List<QueryBuilder>> nestedFilters : nestedFilterBuilders.entrySet()) {
-                filterBuilders.add(QueryBuilders.nestedQuery(nestedFilters.getKey(), getAndFilter(nestedFilters.getValue())));
+                filterBuilders.add(QueryBuilders.nestedQuery(nestedFilters.getKey(), getAndFilter(nestedFilters.getValue()), ScoreMode.None));
             }
 
             return filterBuilders;
@@ -443,7 +452,12 @@ public class QueryHelper {
             if (filters.size() == 1) {
                 return filters.get(0);
             }
-            return QueryBuilders.andQuery(filters.toArray(new QueryBuilder[filters.size()]));
+            BoolQueryBuilder result = QueryBuilders.boolQuery();
+            for (QueryBuilder filter : filters) {
+              result.must(filter);
+            }
+            return result;
+            // return QueryBuilders.andQuery(filters.toArray(new QueryBuilder[filters.size()]));
         }
 
         @Override
@@ -499,7 +513,7 @@ public class QueryHelper {
                 sortBuilder.order(SortOrder.ASC);
             }
             // TODO: change to use sortBuilder.unmappedType
-            sortBuilder.ignoreUnmapped(true);
+            //sortBuilder.ignoreUnmapped(true);
             searchRequestBuilder.addSort(sortBuilder);
             return this;
         }
@@ -517,14 +531,14 @@ public class QueryHelper {
         }
 
         @Override
-        public QueryBuilderHelper fetchContext(String fetchContext, TopHitsBuilder aggregation) {
+        public QueryBuilderHelper fetchContext(String fetchContext, TopHitsAggregationBuilder aggregation) {
             if (fetchContext == null) {
                 return this;
             }
 
             String[][] incExc = includeExcludes(fetchContext);
 
-            aggregation.setFetchSource(incExc[0], incExc[1]);
+            aggregation.fetchSource(incExc[0], incExc[1]);
             return this;
         }
 
@@ -540,7 +554,7 @@ public class QueryHelper {
                         includes.addAll(sourceFetchContext.getIncludes());
                         excludes.addAll(sourceFetchContext.getExcludes());
                     } else {
-                        LOGGER.debug("Unable to find fetch context <" + fetchContext + "> for class <" + clazz.getName() + ">. It will be ignored.");
+                        log.debug("Unable to find fetch context <" + fetchContext + "> for class <" + clazz.getName() + ">. It will be ignored.");
                     }
                 }
             }

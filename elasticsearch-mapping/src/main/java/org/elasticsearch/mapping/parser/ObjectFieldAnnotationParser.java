@@ -6,15 +6,14 @@ import java.util.Map;
 
 import org.elasticsearch.annotation.ObjectField;
 import com.google.common.collect.Maps;
-import org.elasticsearch.common.logging.ESLogger;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.mapping.*;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Parse a {@link org.elasticsearch.annotation.ObjectField} to enrich the mapping
  */
+@Slf4j
 public class ObjectFieldAnnotationParser implements IPropertyAnnotationParser<ObjectField> {
-    private static final ESLogger LOGGER = Loggers.getLogger(MappingBuilder.class);
 
     private final FieldsMappingBuilder fieldsMappingBuilder;
     private final List<IFilterBuilderHelper> filters;
@@ -29,7 +28,7 @@ public class ObjectFieldAnnotationParser implements IPropertyAnnotationParser<Ob
     @Override
     public void parseAnnotation(ObjectField annotation, Map<String, Object> fieldDefinition, String pathPrefix, String nestedPrefix, Indexable indexable) {
         if (fieldDefinition.get("type") != null) {
-            LOGGER.info("Overriding mapping for field {} for class {} was defined as type {}", indexable.getName(), indexable.getDeclaringClassName(),
+            log.info("Overriding mapping for field {} for class {} was defined as type {}", indexable.getName(), indexable.getDeclaringClassName(),
                     fieldDefinition.get("type"));
             fieldDefinition.clear();
         }
@@ -47,7 +46,7 @@ public class ObjectFieldAnnotationParser implements IPropertyAnnotationParser<Ob
                 String newPrefix = pathPrefix == null ? indexable.getName() + "." : pathPrefix + indexable.getName() + ".";
                 this.fieldsMappingBuilder.parseFieldMappings(replaceClass, fieldDefinition, facets, filters, fetchContext, newPrefix, nestedPrefix);
             } catch (IntrospectionException e) {
-                LOGGER.error("Fail to parse object class <" + replaceClass.getName() + ">", e);
+                log.error("Fail to parse object class <" + replaceClass.getName() + ">", e);
             }
         }
     }

@@ -10,16 +10,20 @@
     <description>An object mapping framework for Elastic Search.</description>
 
     <properties>
-        <elasticsearch.version>2.4.6</elasticsearch.version>
-        <search-guard.version>2.4.6.21</search-guard.version>
+        <elasticsearch.version>5.6.15</elasticsearch.version>
+        <search-guard.version>5.6.15-23</search-guard.version>
 
         <jackson.version>2.9.3</jackson.version>
         <spring.version>4.3.2.RELEASE</spring.version>
     	<commons-lang.version>3.5</commons-lang.version>
     	<commons-beanutils.version>1.9.3</commons-beanutils.version>
         <junit.version>4.12</junit.version>
-        <jna.version>4.1.0</jna.version>
-
+        <guava.version>19.0</guava.version>
+        <lombok.version>1.16.18</lombok.version>
+    <!-- Logging -->
+    <log4j.version>2.8.2</log4j.version>
+    <slf4j.version>1.7.24</slf4j.version>
+	
         <java.version>1.8</java.version>
         <maven.compiler.version>2.3.2</maven.compiler.version>
     </properties>
@@ -36,16 +40,23 @@
                 <artifactId>elasticsearch</artifactId>
                 <version>${elasticsearch.version}</version>
             </dependency>
-    <dependency>
-        <groupId>net.java.dev.jna</groupId>
-        <artifactId>jna</artifactId>
-        <version>${jna.version}</version>
-    </dependency>
+            <dependency>
+                <groupId>org.elasticsearch.client</groupId>
+                <artifactId>transport</artifactId>
+                <version>${elasticsearch.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.elasticsearch.plugin</groupId>
+                <artifactId>transport-netty4-client</artifactId>
+                <version>${elasticsearch.version}</version>
+            </dependency>
+<!--
             <dependency>
                 <groupId>org.apache.lucene</groupId>
                 <artifactId>lucene-expressions</artifactId>
                 <version>4.10.4</version>
             </dependency>
+-->
             <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
                 <artifactId>jackson-databind</artifactId>
@@ -81,7 +92,61 @@
                 <artifactId>junit</artifactId>
                 <version>${junit.version}</version>
                 <scope>test</scope>
+                <exclusions>
+                  <exclusion>
+                   <groupId>org.hamcrest</groupId>
+                   <artifactId>hamcrest-core</artifactId>
+                  </exclusion>
+                </exclusions>
             </dependency>
+            <dependency>
+                <groupId>org.elasticsearch.test</groupId>
+                <artifactId>framework</artifactId>
+                <version>${elasticsearch.version}</version>
+                <scope>test</scope> 
+                <exclusions>
+                  <exclusion>
+                <groupId>com.carrotsearch.randomizedtesting</groupId>
+                <artifactId>randomizedtesting-runner</artifactId>
+                  </exclusion>
+                </exclusions>
+            </dependency>
+      <dependency>
+        <groupId>com.google.guava</groupId>
+        <artifactId>guava</artifactId>
+        <version>${guava.version}</version>
+      </dependency>
+    <dependency>
+      <groupId>org.projectlombok</groupId>
+      <artifactId>lombok</artifactId>
+      <version>${lombok.version}</version>
+    </dependency>
+      <!-- Logging -->
+      <dependency>
+        <groupId>org.apache.logging.log4j</groupId>
+        <artifactId>log4j-api</artifactId>
+        <version>${log4j.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.logging.log4j</groupId>
+        <artifactId>log4j-core</artifactId>
+        <version>${log4j.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.logging.log4j</groupId>
+        <artifactId>log4j-slf4j-impl</artifactId>
+        <version>${log4j.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.slf4j</groupId>
+        <artifactId>slf4j-api</artifactId>
+        <version>${slf4j.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.slf4j</groupId>
+        <artifactId>slf4j-ext</artifactId>
+        <version>${slf4j.version}</version>
+      </dependency>
 		</dependencies>
     </dependencyManagement>
 
@@ -113,6 +178,15 @@
                     <target>${java.version}</target>
                 </configuration>
             </plugin>
+<plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>2.20.1</version>
+        <!-- -Dtests.security.manager=false is needed otherwise the ESTestCase fails to initialize -->
+        <configuration>
+          <argLine>-Xms128m -Xmx512m -Dtests.security.manager=false</argLine>
+        </configuration>
+</plugin>
         </plugins>
     </build>
 </project>

@@ -8,15 +8,14 @@ import java.util.Map;
 import org.elasticsearch.annotation.MapKeyValue;
 import org.elasticsearch.annotation.StringField;
 import com.google.common.collect.Maps;
-import org.elasticsearch.common.logging.ESLogger;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.mapping.*;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Created by lucboutier on 15/06/2016.
  */
+@Slf4j
 public class MapKeyValueAnnotationParser implements IPropertyAnnotationParser<MapKeyValue> {
-    private static final ESLogger LOGGER = Loggers.getLogger(MappingBuilder.class);
 
     private final FieldsMappingBuilder fieldsMappingBuilder;
     private final List<IFilterBuilderHelper> filters;
@@ -31,7 +30,7 @@ public class MapKeyValueAnnotationParser implements IPropertyAnnotationParser<Ma
     @Override
     public void parseAnnotation(MapKeyValue annotation, Map<String, Object> fieldDefinition, String pathPrefix, String nestedPrefix, Indexable indexable) {
         if (fieldDefinition.get("type") != null) {
-            LOGGER.info("Overriding mapping for field {} for class {} was defined as type {}", indexable.getName(), indexable.getDeclaringClassName(),
+            log.info("Overriding mapping for field {} for class {} was defined as type {}", indexable.getName(), indexable.getDeclaringClassName(),
                     fieldDefinition.get("type"));
             fieldDefinition.clear();
         }
@@ -90,10 +89,10 @@ public class MapKeyValueAnnotationParser implements IPropertyAnnotationParser<Ma
                 this.fieldsMappingBuilder.parseFieldMappings(mapValueType, valueFieldDefinition, facets, filters, fetchContext,
                         indexable.getName() + ".value.", nestedPrefix);
             } catch (IntrospectionException e) {
-                LOGGER.error("Fail to parse object class <" + mapValueType.getName() + ">", e);
+                log.error("Fail to parse object class <" + mapValueType.getName() + ">", e);
             }
         } else {
-            LOGGER.warn("Cannot find value class for map with annotation MapKeyValue");
+            log.warn("Cannot find value class for map with annotation MapKeyValue");
         }
     }
 }

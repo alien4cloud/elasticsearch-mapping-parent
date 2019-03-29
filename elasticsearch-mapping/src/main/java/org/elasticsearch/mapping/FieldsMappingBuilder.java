@@ -14,18 +14,18 @@ import org.apache.commons.beanutils.PropertyUtils;
 
 import org.elasticsearch.annotation.*;
 import org.elasticsearch.annotation.query.*;
-import org.elasticsearch.common.logging.ESLogger;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.mapping.parser.*;
 import org.elasticsearch.util.MapUtil;
 import org.springframework.util.ClassUtils;
+
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Process fields in a class to fill-in the properties entry in the class definition map.
  * 
  */
+@Slf4j
 public class FieldsMappingBuilder {
-    private static final ESLogger LOGGER = Loggers.getLogger(MappingBuilder.class);
 
     /**
      * Parse fields from the given class to add properties mapping.
@@ -128,7 +128,7 @@ public class FieldsMappingBuilder {
         Id id = indexable.getAnnotation(Id.class);
         if (id != null) {
             if (classDefinitionMap.containsKey("_id")) {
-                LOGGER.warn("An Id annotation is defined on field <" + esFieldName + "> of <" + indexable.getDeclaringClassName()
+                log.warn("An Id annotation is defined on field <" + esFieldName + "> of <" + indexable.getDeclaringClassName()
                         + "> but an id has already be defined for <" + ((Map<String, Object>) classDefinitionMap.get("_id")).get("path") + ">");
             } else {
                 classDefinitionMap.put("_id", MapUtil.getMap(new String[] { "path", "index", "store" }, new Object[] { esFieldName, id.index(), id.store() }));
@@ -141,7 +141,7 @@ public class FieldsMappingBuilder {
         Routing routing = indexable.getAnnotation(Routing.class);
         if (routing != null) {
             if (classDefinitionMap.containsKey("_routing")) {
-                LOGGER.warn("A Routing annotation is defined on field <" + esFieldName + "> of <" + indexable.getDeclaringClassName()
+                log.warn("A Routing annotation is defined on field <" + esFieldName + "> of <" + indexable.getDeclaringClassName()
                         + "> but a routing has already be defined for <" + ((Map<String, Object>) classDefinitionMap.get("_routing")).get("path") + ">");
             } else {
                 Map<String, Object> routingDef = new HashMap<String, Object>();
@@ -157,7 +157,7 @@ public class FieldsMappingBuilder {
         Boost boost = indexable.getAnnotation(Boost.class);
         if (boost != null) {
             if (classDefinitionMap.containsKey("_boost")) {
-                LOGGER.warn("A Boost annotation is defined on field <" + esFieldName + "> of <" + indexable.getDeclaringClassName()
+                log.warn("A Boost annotation is defined on field <" + esFieldName + "> of <" + indexable.getDeclaringClassName()
                         + "> but a boost has already be defined for <" + ((Map<String, Object>) classDefinitionMap.get("_boost")).get("name") + ">");
             } else {
                 Map<String, Object> boostDef = new HashMap<String, Object>();
@@ -173,7 +173,7 @@ public class FieldsMappingBuilder {
         TimeStamp timeStamp = indexable.getAnnotation(TimeStamp.class);
         if (timeStamp != null) {
             if (classDefinitionMap.containsKey("_timestamp")) {
-                LOGGER.warn("A TimeStamp annotation is defined on field <" + esFieldName + "> of <" + indexable.getDeclaringClassName()
+                log.warn("A TimeStamp annotation is defined on field <" + esFieldName + "> of <" + indexable.getDeclaringClassName()
                         + "> but a boost has already be defined for <" + ((Map<String, Object>) classDefinitionMap.get("_timestamp")).get("name") + ">");
             } else {
                 Map<String, Object> timeStampDefinition = new HashMap<String, Object>();
@@ -285,7 +285,7 @@ public class FieldsMappingBuilder {
             classFacets.add(facetBuilderHelper);
             if (classFilters.contains(facetBuilderHelper)) {
                 classFilters.remove(facetBuilderHelper);
-                LOGGER.warn("Field <" + esFieldName + "> already had a filter that will be replaced by the defined facet. Only a single one is allowed.");
+                log.warn("Field <" + esFieldName + "> already had a filter that will be replaced by the defined facet. Only a single one is allowed.");
             }
             classFilters.add(facetBuilderHelper);
         }
@@ -326,7 +326,7 @@ public class FieldsMappingBuilder {
         classFacets.add(facetBuilderHelper);
         if (classFilters.contains(facetBuilderHelper)) {
             classFilters.remove(facetBuilderHelper);
-            LOGGER.warn("Field <" + esFieldName + "> already had a filter that will be replaced by the defined facet. Only a single one is allowed.");
+            log.warn("Field <" + esFieldName + "> already had a filter that will be replaced by the defined facet. Only a single one is allowed.");
         }
         classFilters.add(facetBuilderHelper);
     }
@@ -426,7 +426,7 @@ public class FieldsMappingBuilder {
             PropertyDescriptor propertyDescriptor = pdMap.get(pdName);
 
             if (propertyDescriptor == null || propertyDescriptor.getReadMethod() == null || propertyDescriptor.getWriteMethod() == null) {
-                LOGGER.debug("Field <" + field.getName() + "> of class <" + clazz.getName() + "> has no proper setter/getter and won't be persisted.");
+                log.debug("Field <" + field.getName() + "> of class <" + clazz.getName() + "> has no proper setter/getter and won't be persisted.");
             } else {
                 fdMap.put(pdName, field);
             }

@@ -27,7 +27,7 @@ public class TermsFilterBuilderHelper extends AbstractFilterBuilderHelper {
         preProcessValues(values);
         if (values.length == 1) {
             if (values[0] == null) {
-                return QueryBuilders.missingQuery(key).existence(true).nullValue(true);
+                return QueryBuilders.boolQuery().mustNot(new ExistsQueryBuilder(key));
             }
             return QueryBuilders.termQuery(key, values[0]);
         }

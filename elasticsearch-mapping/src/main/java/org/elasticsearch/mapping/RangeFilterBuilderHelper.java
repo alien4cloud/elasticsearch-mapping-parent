@@ -54,11 +54,13 @@ public class RangeFilterBuilderHelper extends AbstractFilterBuilderHelper {
         if (rangeValues.length == 1) {
             return buildSingleRangeFilter(key, rangeValues[0]);
         }
+        BoolQueryBuilder result = new BoolQueryBuilder();
         QueryBuilder[] builders = new QueryBuilder[rangeValues.length];
         for (int i = 0; i < rangeValues.length; i++) {
             builders[i] = buildSingleRangeFilter(key, rangeValues[i]);
+            result = result.should(builders[i]);
         }
-        return QueryBuilders.orQuery(builders);
+        return result;
     }
 
     private QueryBuilder buildSingleRangeFilter(String key, String value) {
@@ -89,7 +91,7 @@ public class RangeFilterBuilderHelper extends AbstractFilterBuilderHelper {
             for (int i = 0; i < rangeValues.length; i++) {
                 queryBuilder.should(buildSingleRangeQuery(key, rangeValues[i]));
             }
-            queryBuilder.minimumNumberShouldMatch(1);
+            queryBuilder.minimumShouldMatch(1);
             return queryBuilder;
         }
     }

@@ -70,7 +70,7 @@ public class AddressParserUtilTest {
 
     /**  Test => REMOVED! : host must be resolved and whitespace in host is not allowed in real world.
     public void testParserHostCsvListDual3() {
-        List<InetSocketTransportAddress> result = AddressParserUtil.parseHostCsvList("192.168.0.1:9200,whitespace in host:1234,thehostname:8888");
+        List<InetSocketInetSocketTransportAddress> result = AddressParserUtil.parseHostCsvList("192.168.0.1:9200,whitespace in host:1234,thehostname:8888");
         Assert.assertEquals(2, result.size());
         Assert.assertEquals("192.168.0.1", result.get(0).address().getHostString());
         Assert.assertEquals(9200, result.get(0).address().getPort());

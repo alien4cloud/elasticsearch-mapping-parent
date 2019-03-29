@@ -6,12 +6,11 @@ import java.util.Map;
 
 import org.elasticsearch.annotation.NestedObject;
 import com.google.common.collect.Maps;
-import org.elasticsearch.common.logging.ESLogger;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.mapping.*;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class NestedObjectFieldAnnotationParser implements IPropertyAnnotationParser<NestedObject> {
-    private static final ESLogger LOGGER = Loggers.getLogger(MappingBuilder.class);
 
     private final FieldsMappingBuilder fieldsMappingBuilder;
     private final List<IFilterBuilderHelper> filters;
@@ -26,7 +25,7 @@ public class NestedObjectFieldAnnotationParser implements IPropertyAnnotationPar
     @Override
     public void parseAnnotation(NestedObject annotation, Map<String, Object> fieldDefinition, String pathPrefix, String nestedPrefix, Indexable indexable) {
         if (fieldDefinition.get("type") != null) {
-            LOGGER.info("Overriding mapping for field {} for class {} was defined as type {}", indexable.getName(), indexable.getDeclaringClassName(),
+            log.info("Overriding mapping for field {} for class {} was defined as type {}", indexable.getName(), indexable.getDeclaringClassName(),
                     fieldDefinition.get("type"));
             fieldDefinition.clear();
         }
@@ -39,7 +38,7 @@ public class NestedObjectFieldAnnotationParser implements IPropertyAnnotationPar
             this.fieldsMappingBuilder.parseFieldMappings(replaceClass, fieldDefinition, facets, filters, fetchContext, indexable.getName() + ".",
                     indexable.getName());
         } catch (IntrospectionException e) {
-            LOGGER.error("Fail to parse nested class <" + replaceClass.getName() + ">", e);
+            log.error("Fail to parse nested class <" + replaceClass.getName() + ">", e);
         }
     }
 }
