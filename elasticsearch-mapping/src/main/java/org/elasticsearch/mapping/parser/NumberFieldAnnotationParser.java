@@ -4,6 +4,7 @@ import java.util.Map;
 
 import org.elasticsearch.annotation.NumberField;
 import org.elasticsearch.mapping.Indexable;
+import org.elasticsearch.mapping.IndexType;
 import org.elasticsearch.mapping.MappingBuilder;
 import org.elasticsearch.mapping.MappingException;
 import lombok.extern.slf4j.Slf4j;
@@ -36,8 +37,9 @@ public class NumberFieldAnnotationParser implements IPropertyAnnotationParser<Nu
 
         fieldDefinition.put("type", type);
         fieldDefinition.put("store", annotation.store());
-        fieldDefinition.put("index", annotation.index());
-        fieldDefinition.put("precision_step", annotation.precisionStep());
+        //fieldDefinition.put("index", annotation.index());
+        fieldDefinition.put("index", annotation.index() == IndexType.no ? "false" : "true");
+        // removed in ES 5 : fieldDefinition.put("precision_step", annotation.precisionStep());
         fieldDefinition.put("boost", annotation.boost());
         fieldDefinition.put("include_in_all", annotation.includeInAll());
         fieldDefinition.put("ignore_malformed", annotation.ignoreMalformed());

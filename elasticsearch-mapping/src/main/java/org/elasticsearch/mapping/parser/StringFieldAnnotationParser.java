@@ -22,11 +22,21 @@ public class StringFieldAnnotationParser implements IPropertyAnnotationParser<St
             fieldDefinition.clear();
         }
 
-        fieldDefinition.put("type", "string");
+        if (annotation.indexType() == IndexType.analyzed) {
+           fieldDefinition.put("type", "text");
+           fieldDefinition.put("index", "true"); 
+        } else if (annotation.indexType() == IndexType.not_analyzed) {
+           fieldDefinition.put("type", "keyword");
+           fieldDefinition.put("index", "true"); 
+        } else {   // no
+           fieldDefinition.put("type", "keyword");
+           fieldDefinition.put("index", "false"); 
+        }
+        //fieldDefinition.put("type", "string");
         fieldDefinition.put("store", annotation.store());
-        fieldDefinition.put("index", annotation.indexType());
+        //fieldDefinition.put("index", annotation.indexType());
         // TODO doc_values
-        fieldDefinition.put("term_vector", annotation.termVector());
+        //fieldDefinition.put("term_vector", annotation.termVector());
         fieldDefinition.put("boost", annotation.boost());
         if (!StringField.NULL_VALUE_NOT_SPECIFIED.equals(annotation.nullValue())) {
             fieldDefinition.put("null_value", annotation.nullValue());

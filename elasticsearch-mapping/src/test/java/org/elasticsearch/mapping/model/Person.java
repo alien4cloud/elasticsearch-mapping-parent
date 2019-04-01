@@ -17,6 +17,7 @@ public class Person {
     private String id;
     @StringField(indexType = IndexType.no, includeInAll = false)
     private String firstname;
+    @TermFilter
     @StringField(indexType = IndexType.analyzed)
     private String lastname;
 

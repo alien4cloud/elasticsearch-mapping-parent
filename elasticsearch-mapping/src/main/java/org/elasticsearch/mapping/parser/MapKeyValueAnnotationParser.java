@@ -43,11 +43,21 @@ public class MapKeyValueAnnotationParser implements IPropertyAnnotationParser<Ma
         Map<String, Object> keyFieldDefinition = Maps.newHashMap();
         properties.put("key", keyFieldDefinition);
 
-        keyFieldDefinition.put("type", "string");
+        if (annotation.indexType() == IndexType.analyzed) {
+           keyFieldDefinition.put("type", "text");
+           keyFieldDefinition.put("index", "true");
+        } else if (annotation.indexType() == IndexType.not_analyzed) {
+           keyFieldDefinition.put("type", "keyword");
+           keyFieldDefinition.put("index", "true");
+        } else {   // no
+           keyFieldDefinition.put("type", "keyword");
+           keyFieldDefinition.put("index", "false");
+        }
+        //keyFieldDefinition.put("type", "string");
         keyFieldDefinition.put("store", annotation.store());
-        keyFieldDefinition.put("index", annotation.indexType());
+        //keyFieldDefinition.put("index", annotation.indexType());
         // TODO doc_values
-        keyFieldDefinition.put("term_vector", annotation.termVector());
+        //keyFieldDefinition.put("term_vector", annotation.termVector());
         keyFieldDefinition.put("boost", annotation.boost());
         if (!StringField.NULL_VALUE_NOT_SPECIFIED.equals(annotation.nullValue())) {
             keyFieldDefinition.put("null_value", annotation.nullValue());

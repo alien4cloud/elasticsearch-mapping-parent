@@ -17,6 +17,7 @@ import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.SearchType;
+import org.elasticsearch.action.support.WriteRequest.RefreshPolicy;
 import com.google.common.collect.Maps;
 import org.elasticsearch.common.network.NetworkModule;
 import org.elasticsearch.common.settings.Settings;
@@ -97,6 +98,7 @@ public class ElasticSearchInsertMappingTest {
         save(indexName, person);
 
         person.setId("AnotherPersonId");
+        person.setLastname("something else");
         address.setCity("Paris");
         save(indexName, person);
 
@@ -115,6 +117,12 @@ public class ElasticSearchInsertMappingTest {
 
         response = this.queryHelper.buildQuery().types(requestedTypes).filters(filters).prepareSearch(searchIndexes).execute(0, 10000);
         Assert.assertEquals(2, response.getHits().getTotalHits());
+
+        filters.put("lastname", new String[] { "lastname" });
+        response = this.queryHelper.buildQuery().types(requestedTypes).filters(filters).prepareSearch(searchIndexes).execute(0, 10000);
+        Assert.assertEquals(1, response.getHits().getTotalHits());
+
+        filters = Maps.newHashMap();
         filters.put("address.city", new String[] { "Paris" });
         response = this.queryHelper.buildQuery().types(requestedTypes).filters(filters).prepareSearch(searchIndexes).execute(0, 10000);
         Assert.assertEquals(1, response.getHits().getTotalHits());
@@ -158,8 +166,7 @@ public class ElasticSearchInsertMappingTest {
 		System.out.println (json);
         //esClient.getClient().prepareIndex(indexName, indexName).setOperationThreaded(false).setSource(json).setRefresh(true).execute().actionGet();
 		String idValue = (new FieldsMappingBuilder()).getIdValue(data);
-
-        esClient.getClient().prepareIndex(indexName, indexName, idValue).setSource(json).setRefreshPolicy("IMMEDIATE").execute().actionGet();
+        esClient.getClient().prepareIndex(indexName, indexName, idValue).setSource(json).setRefreshPolicy(RefreshPolicy.IMMEDIATE).execute().actionGet();
     }
 
     public Person readById(String indexName, String id) throws JsonParseException, JsonMappingException, IOException {
