@@ -56,6 +56,7 @@ public class ElasticSearchInsertMappingTest {
 
     @Before
     public void setUp() throws Exception {
+/***************
       try {
          Settings settings = Settings.builder().put(Environment.PATH_HOME_SETTING.getKey(), "target/eshome")
                                                 .put("transport.type", MockTcpTransportPlugin.MOCK_TCP_TRANSPORT_NAME)
@@ -68,14 +69,11 @@ public class ElasticSearchInsertMappingTest {
          node.start();
          client = node.client();
          esClient.setClient(client);
-/***
-         super.setUp();
-         esClient.setClient(client());
-***/
       } catch (Exception e) {
          System.out.println ("Got " + e.getMessage());
          e.printStackTrace();
       }
+***********************/
     }
 
     @Test

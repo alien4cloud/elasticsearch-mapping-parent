@@ -114,7 +114,7 @@
                 <groupId>org.elasticsearch.test</groupId>
                 <artifactId>framework</artifactId>
                 <version>${elasticsearch.version}</version>
-                <scope>test</scope>  
+                <!--<scope>test</scope>  -->
                 <exclusions>
                   <exclusion>
                 <groupId>com.carrotsearch.randomizedtesting</groupId>

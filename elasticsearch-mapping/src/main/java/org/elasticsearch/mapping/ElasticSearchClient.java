@@ -1,5 +1,6 @@
 package org.elasticsearch.mapping;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.annotation.PostConstruct;
@@ -10,9 +11,15 @@ import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequestBuilder
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.transport.TransportClient;
+import org.elasticsearch.common.network.NetworkModule;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.env.Environment;
+import org.elasticsearch.node.MockNode;
+import org.elasticsearch.node.Node;
+import org.elasticsearch.plugins.Plugin;
+import org.elasticsearch.transport.MockTcpTransportPlugin;
 import org.elasticsearch.transport.client.PreBuiltTransportClient;
 import org.elasticsearch.util.AddressParserUtil;
 import org.springframework.beans.factory.annotation.Value;
@@ -32,7 +39,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class ElasticSearchClient {
 
-//    private Node node;
+    private Node node;
     private boolean isClient;
     private boolean isTransportClient;
     private List<InetSocketTransportAddress> adresses;
@@ -47,7 +54,7 @@ public class ElasticSearchClient {
     private String truststorePassword = null;
 
     @PostConstruct
-    public void initialize() {
+    public void initialize() throws Exception {
         if (this.isClient && this.isTransportClient) {
             // when these both option are set, we use a transport client
             Settings.Builder settingsBuilder = Settings.builder()
@@ -71,11 +78,21 @@ public class ElasticSearchClient {
             }
             this.client = transportClient;
         }  else {
-/************************
             // when only 'client' option is set, a node without data is initialized and joins the cluster
+/************************
             this.node = NodeBuilder.nodeBuilder().client(this.isClient).clusterName(this.clusterName).local(this.isLocal).node();
             this.client = node.client();
 ***************************/
+         Settings settings = Settings.builder().put(Environment.PATH_HOME_SETTING.getKey(), "target/eshome")
+                                                .put("transport.type", MockTcpTransportPlugin.MOCK_TCP_TRANSPORT_NAME)
+                                                .put(NetworkModule.HTTP_ENABLED.getKey(), false)
+                                                .build();
+         ArrayList<Class<? extends Plugin>> plugins = new ArrayList<Class<? extends Plugin>>();
+         plugins.add (MockTcpTransportPlugin.class);
+         MockNode node = new MockNode(settings, plugins);
+         node.start();
+         this.client = node.client();
+         this.node = node;
         } 
 
 //        if (this.resetData) { // removes all indices from elastic search. For Integration testing only.
@@ -85,15 +102,13 @@ public class ElasticSearchClient {
     }
 
     @PreDestroy
-    public void close() {
+    public void close() throws Exception {
         if (client != null) {
             client.close();
         }
-/***
         if (node != null) {
             node.close();
         }
-****/
         log.info("Closed ElasticSearch client for cluster <" + this.clusterName + ">");
     }
 
@@ -104,15 +119,6 @@ public class ElasticSearchClient {
      */
     public Client getClient() {
         return this.client;
-    }
-
-    /**
-     * Set client (for tests)
-     *  
-     *  @param client ES client
-     */
-    public void setClient (Client client) {
-        this.client = client;
     }
 
     /**

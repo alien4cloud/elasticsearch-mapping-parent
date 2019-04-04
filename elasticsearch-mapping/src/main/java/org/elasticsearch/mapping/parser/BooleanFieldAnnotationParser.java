@@ -4,6 +4,7 @@ import java.util.Map;
 
 import org.elasticsearch.annotation.BooleanField;
 import org.elasticsearch.mapping.Indexable;
+import org.elasticsearch.mapping.IndexType;
 import org.elasticsearch.mapping.MappingBuilder;
 import lombok.extern.slf4j.Slf4j;
 
@@ -24,7 +25,8 @@ public class BooleanFieldAnnotationParser implements IPropertyAnnotationParser<B
 
         fieldDefinition.put("type", "boolean");
         fieldDefinition.put("store", annotation.store());
-        fieldDefinition.put("index", annotation.index());
+        //fieldDefinition.put("index", annotation.index());
+        fieldDefinition.put("index", annotation.index() == IndexType.no ? "false" : "true");
         fieldDefinition.put("boost", annotation.boost());
         fieldDefinition.put("include_in_all", annotation.includeInAll());
     }
