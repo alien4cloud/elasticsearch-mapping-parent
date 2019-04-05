@@ -25,6 +25,7 @@ public class StringFieldAnnotationParser implements IPropertyAnnotationParser<St
         if (annotation.indexType() == IndexType.analyzed) {
            fieldDefinition.put("type", "text");
            fieldDefinition.put("index", "true"); 
+           fieldDefinition.put("fielddata", "true");
         } else if (annotation.indexType() == IndexType.not_analyzed) {
            fieldDefinition.put("type", "keyword");
            fieldDefinition.put("index", "true"); 

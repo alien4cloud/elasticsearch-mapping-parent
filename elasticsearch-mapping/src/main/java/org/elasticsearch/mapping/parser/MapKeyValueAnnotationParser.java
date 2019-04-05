@@ -46,6 +46,7 @@ public class MapKeyValueAnnotationParser implements IPropertyAnnotationParser<Ma
         if (annotation.indexType() == IndexType.analyzed) {
            keyFieldDefinition.put("type", "text");
            keyFieldDefinition.put("index", "true");
+           keyFieldDefinition.put("fielddata", "true");
         } else if (annotation.indexType() == IndexType.not_analyzed) {
            keyFieldDefinition.put("type", "keyword");
            keyFieldDefinition.put("index", "true");
