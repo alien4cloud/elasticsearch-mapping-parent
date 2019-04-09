@@ -86,6 +86,7 @@ public class ElasticSearchClient {
          Settings settings = Settings.builder().put(Environment.PATH_HOME_SETTING.getKey(), "target/eshome")
                                                 .put("transport.type", MockTcpTransportPlugin.MOCK_TCP_TRANSPORT_NAME)
                                                 .put(NetworkModule.HTTP_ENABLED.getKey(), false)
+                                                .put("cluster.name", this.clusterName)
                                                 .build();
          ArrayList<Class<? extends Plugin>> plugins = new ArrayList<Class<? extends Plugin>>();
          plugins.add (MockTcpTransportPlugin.class);

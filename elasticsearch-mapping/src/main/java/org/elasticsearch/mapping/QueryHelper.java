@@ -390,7 +390,9 @@ public class QueryHelper {
 ***/
                result = QueryBuilders.boolQuery().must(query);
                for (QueryBuilder esFilter : esFilters) {
-                  result.filter(esFilter);
+                  if (esFilter != null) {
+                     result.filter(esFilter);
+                  }
                }
             }
             //return query;
