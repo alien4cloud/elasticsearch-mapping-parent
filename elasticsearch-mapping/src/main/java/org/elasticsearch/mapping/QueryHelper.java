@@ -203,10 +203,11 @@ public class QueryHelper {
          * Allows to define a sort field.
          *
          * @param fieldName Name of the field to sort.
+         * @param fieldType Type of the field to sort.
          * @param desc Descending or Ascending
          * @return this
          */
-        ISearchQueryBuilderHelper fieldSort(String fieldName, boolean desc);
+        ISearchQueryBuilderHelper fieldSort(String fieldName, String fieldType, boolean desc);
 
         /**
          * Add a fetch context to the query.
@@ -503,7 +504,7 @@ public class QueryHelper {
         }
 
         @Override
-        public QueryBuilderHelper fieldSort(String fieldName, boolean desc) {
+        public QueryBuilderHelper fieldSort(String fieldName, String fieldType, boolean desc) {
             if (fieldName == null) {
                 return this;
             }
@@ -514,8 +515,8 @@ public class QueryHelper {
             } else {
                 sortBuilder.order(SortOrder.ASC);
             }
-            // TODO: change to use sortBuilder.unmappedType
             //sortBuilder.ignoreUnmapped(true);
+            sortBuilder.unmappedType(fieldType);
             searchRequestBuilder.addSort(sortBuilder);
             return this;
         }
