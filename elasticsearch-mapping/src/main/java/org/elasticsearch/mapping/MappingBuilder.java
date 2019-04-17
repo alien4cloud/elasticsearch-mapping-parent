@@ -191,6 +191,7 @@ public class MappingBuilder {
 
         typeDefinitionMap.put(typeNameStr, classDefinitionMap);
 
+/*********************
         if (esAll != null) {
             classDefinitionMap.put("_all",
                     MapUtil.getMap(new String[] { "enabled", "analyzer", "store" }, new Object[] { true, esAll.analyser(), esAll.store() }));
@@ -199,8 +200,9 @@ public class MappingBuilder {
         }
         classDefinitionMap.put("_source", MapUtil.getMap("enabled", esObject.source()));
         //classDefinitionMap.put("_type", MapUtil.getMap(new String[] { "store", "index" }, new Object[] { esObject.store(), esObject.index() }));
+****************************/
 
-        this.fieldsMappingBuilder.parseFieldMappings(clazz, classDefinitionMap, facetFields, filteredFields, fetchContexts, pathPrefix, null);
+        this.fieldsMappingBuilder.parseFieldMappings(clazz, classDefinitionMap, facetFields, filteredFields, fetchContexts, pathPrefix, null, true);
 
         ObjectMapper mapper = new ObjectMapper();
         if (typeNameStr != null) {

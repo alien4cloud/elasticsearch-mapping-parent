@@ -40,10 +40,10 @@ public class FieldsMappingBuilder {
      */
     @SuppressWarnings("unchecked")
     public void parseFieldMappings(Class<?> clazz, Map<String, Object> classDefinitionMap, List<IFacetBuilderHelper> facetFields,
-            List<IFilterBuilderHelper> filteredFields, Map<String, SourceFetchContext> fetchContexts, String pathPrefix, String nestedPrefix)
+            List<IFilterBuilderHelper> filteredFields, Map<String, SourceFetchContext> fetchContexts, String pathPrefix, String nestedPrefix, boolean isAll)
             throws IntrospectionException {
         if (clazz.getSuperclass() != null && clazz.getSuperclass() != Object.class) {
-            parseFieldMappings(clazz.getSuperclass(), classDefinitionMap, facetFields, filteredFields, fetchContexts, pathPrefix, nestedPrefix);
+            parseFieldMappings(clazz.getSuperclass(), classDefinitionMap, facetFields, filteredFields, fetchContexts, pathPrefix, nestedPrefix, isAll);
         }
 
         List<Indexable> indexables = getIndexables(clazz);
@@ -57,6 +57,11 @@ public class FieldsMappingBuilder {
         for (Indexable indexable : indexables) {
             parseFieldMappings(clazz, classDefinitionMap, facetFields, filteredFields, fetchContexts, propertiesDefinitionMap, pathPrefix, nestedPrefix,
                     indexable);
+        }
+        if (isAll) {
+            Map<String, String> fieldsDefinitionMap = new HashMap<String, String>();
+            fieldsDefinitionMap.put ("type", "text");
+            propertiesDefinitionMap.put ("all", fieldsDefinitionMap);
         }
     }
 

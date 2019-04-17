@@ -84,7 +84,10 @@ public class MapKeyValueAnnotationParser implements IPropertyAnnotationParser<Ma
             keyFieldDefinition.put("search_analyzer", annotation.searchAnalyzer());
         }
 
-        keyFieldDefinition.put("include_in_all", annotation.includeInAll());
+        //keyFieldDefinition.put("include_in_all", annotation.includeInAll());
+        if (annotation.includeInAll()) {
+           keyFieldDefinition.put("copy_to", "all");
+        }
         if (annotation.ignoreAbove() > 0) {
             keyFieldDefinition.put("ignore_above", annotation.ignoreAbove());
         }
@@ -98,7 +101,7 @@ public class MapKeyValueAnnotationParser implements IPropertyAnnotationParser<Ma
             Map<String, SourceFetchContext> fetchContext = Maps.newHashMap();
             try {
                 this.fieldsMappingBuilder.parseFieldMappings(mapValueType, valueFieldDefinition, facets, filters, fetchContext,
-                        indexable.getName() + ".value.", nestedPrefix);
+                        indexable.getName() + ".value.", nestedPrefix, false);
             } catch (IntrospectionException e) {
                 log.error("Fail to parse object class <" + mapValueType.getName() + ">", e);
             }

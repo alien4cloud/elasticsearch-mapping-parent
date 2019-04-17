@@ -244,7 +244,7 @@ public class QueryHelper {
 
         protected QueryBuilderHelper(MappingBuilder mappingBuilder, ElasticSearchClient esClient, int maxExpansions, String searchQuery) {
             //this.queryBuilder = getOrMatchAll(searchQuery, () -> QueryBuilders.prefixQuery("_all", searchQuery));
-            this.queryBuilder = getOrMatchAll(searchQuery, () -> QueryBuilders.matchPhrasePrefixQuery("_all", searchQuery).maxExpansions(maxExpansions));
+            this.queryBuilder = getOrMatchAll(searchQuery, () -> QueryBuilders.matchPhrasePrefixQuery("all", searchQuery).maxExpansions(maxExpansions));
             this.mappingBuilder = mappingBuilder;
             this.esClient = esClient;
         }
@@ -316,7 +316,7 @@ public class QueryHelper {
             SearchRequestBuilder countRequestBuilder = esClient.getClient().prepareSearch(indices);
             if (types != null && types.length > 0) {
                 countRequestBuilder.setTypes(types);
-            }
+            } 
             countRequestBuilder.setSize(0).setQuery(this.queryBuilder);
             return countRequestBuilder.execute().actionGet();
         }

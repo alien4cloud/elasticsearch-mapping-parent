@@ -44,7 +44,7 @@ public class ObjectFieldAnnotationParser implements IPropertyAnnotationParser<Ob
             Class<?> replaceClass = objectClass.equals(ObjectField.class) ? indexable.getType() : objectClass;
             try {
                 String newPrefix = pathPrefix == null ? indexable.getName() + "." : pathPrefix + indexable.getName() + ".";
-                this.fieldsMappingBuilder.parseFieldMappings(replaceClass, fieldDefinition, facets, filters, fetchContext, newPrefix, nestedPrefix);
+                this.fieldsMappingBuilder.parseFieldMappings(replaceClass, fieldDefinition, facets, filters, fetchContext, newPrefix, nestedPrefix, false);
             } catch (IntrospectionException e) {
                 log.error("Fail to parse object class <" + replaceClass.getName() + ">", e);
             }

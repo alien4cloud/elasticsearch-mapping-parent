@@ -36,7 +36,7 @@ public class NestedObjectFieldAnnotationParser implements IPropertyAnnotationPar
         Class<?> replaceClass = annotation.nestedClass().equals(NestedObject.class) ? indexable.getType() : annotation.nestedClass();
         try {
             this.fieldsMappingBuilder.parseFieldMappings(replaceClass, fieldDefinition, facets, filters, fetchContext, indexable.getName() + ".",
-                    indexable.getName());
+                    indexable.getName(), false);
         } catch (IntrospectionException e) {
             log.error("Fail to parse nested class <" + replaceClass.getName() + ">", e);
         }

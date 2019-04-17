@@ -28,6 +28,9 @@ public class BooleanFieldAnnotationParser implements IPropertyAnnotationParser<B
         //fieldDefinition.put("index", annotation.index());
         fieldDefinition.put("index", annotation.index() == IndexType.no ? "false" : "true");
         fieldDefinition.put("boost", annotation.boost());
-        fieldDefinition.put("include_in_all", annotation.includeInAll());
+        //fieldDefinition.put("include_in_all", annotation.includeInAll());
+        if (annotation.includeInAll()) {
+           fieldDefinition.put("copy_to", "all");
+        }
     }
 }

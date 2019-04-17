@@ -30,7 +30,10 @@ public class DateFieldAnnotationParser implements IPropertyAnnotationParser<Date
         fieldDefinition.put("index", annotation.index() == IndexType.no ? "false" : "true");
         //fieldDefinition.put("precision_step", annotation.precisionStep());
         fieldDefinition.put("boost", annotation.boost());
-        fieldDefinition.put("include_in_all", annotation.includeInAll());
+        //fieldDefinition.put("include_in_all", annotation.includeInAll());
+        if (annotation.includeInAll()) {
+           fieldDefinition.put("copy_to", "all");
+        }
         fieldDefinition.put("ignore_malformed", annotation.ignoreMalformed());
     }
 }

@@ -21,6 +21,7 @@ import org.elasticsearch.action.support.WriteRequest.RefreshPolicy;
 import com.google.common.collect.Maps;
 import org.elasticsearch.common.network.NetworkModule;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.index.query.QueryBuilder;
@@ -149,7 +150,7 @@ public class ElasticSearchInsertMappingTest {
 
             for (Class<?> clazz : classes) {
                 System.out.println(mappingBuilder.getMapping(clazz));
-                createIndexRequestBuilder.addMapping(clazz.getSimpleName().toLowerCase(), mappingBuilder.getMapping(clazz));
+                createIndexRequestBuilder.addMapping(clazz.getSimpleName().toLowerCase(), mappingBuilder.getMapping(clazz), XContentType.JSON);
             }
             final CreateIndexResponse createResponse = createIndexRequestBuilder.execute().actionGet();
             if (!createResponse.isAcknowledged()) {
@@ -164,7 +165,7 @@ public class ElasticSearchInsertMappingTest {
 		System.out.println (json);
         //esClient.getClient().prepareIndex(indexName, indexName).setOperationThreaded(false).setSource(json).setRefresh(true).execute().actionGet();
 		String idValue = (new FieldsMappingBuilder()).getIdValue(data);
-        esClient.getClient().prepareIndex(indexName, indexName, idValue).setSource(json).setRefreshPolicy(RefreshPolicy.IMMEDIATE).execute().actionGet();
+        esClient.getClient().prepareIndex(indexName, indexName, idValue).setSource(json, XContentType.JSON).setRefreshPolicy(RefreshPolicy.IMMEDIATE).execute().actionGet();
     }
 
     public Person readById(String indexName, String id) throws JsonParseException, JsonMappingException, IOException {
@@ -182,7 +183,7 @@ public class ElasticSearchInsertMappingTest {
         searchRequestBuilder.setTypes(Person.class.getSimpleName());
 
         QueryBuilder queryBuilder;
-        queryBuilder = QueryBuilders.matchPhrasePrefixQuery("_all", searchText).maxExpansions(10);
+        queryBuilder = QueryBuilders.matchPhrasePrefixQuery("all", searchText).maxExpansions(10);
 
         searchRequestBuilder.setSearchType(SearchType.QUERY_THEN_FETCH).setQuery(queryBuilder).setSize(10).setFrom(0);
 

@@ -13,7 +13,7 @@ import org.elasticsearch.client.Client;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.network.NetworkModule;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.transport.InetSocketTransportAddress;
+import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.node.MockNode;
@@ -42,7 +42,7 @@ public class ElasticSearchClient {
     private Node node;
     private boolean isClient;
     private boolean isTransportClient;
-    private List<InetSocketTransportAddress> adresses;
+    private List<TransportAddress> adresses;
     private boolean isLocal;
     private String clusterName;
     private boolean resetData = false;
@@ -73,7 +73,7 @@ public class ElasticSearchClient {
             } else {
                transportClient =  new PreBuiltTransportClient(settings, SearchGuardSSLPlugin.class);
             }
-            for (InetSocketTransportAddress add : adresses) {
+            for (TransportAddress add : adresses) {
                 transportClient.addTransportAddress(add);
             }
             this.client = transportClient;

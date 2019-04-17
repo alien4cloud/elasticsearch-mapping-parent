@@ -63,7 +63,10 @@ public class StringFieldAnnotationParser implements IPropertyAnnotationParser<St
             fieldDefinition.put("search_analyzer", annotation.searchAnalyzer());
         }
 
-        fieldDefinition.put("include_in_all", annotation.includeInAll());
+        //fieldDefinition.put("include_in_all", annotation.includeInAll());
+        if (annotation.includeInAll()) {
+           fieldDefinition.put("copy_to", "all");
+        }
         if (annotation.ignoreAbove() > 0) {
             fieldDefinition.put("ignore_above", annotation.ignoreAbove());
         }

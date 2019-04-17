@@ -4,7 +4,7 @@ import java.util.List;
 
 import junit.framework.Assert;
 
-import org.elasticsearch.common.transport.InetSocketTransportAddress;
+import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.util.AddressParserUtil;
 import org.junit.Test;
 
@@ -12,19 +12,19 @@ public class AddressParserUtilTest {
 
     @Test
     public void testParserHostCsvListNull() {
-        List<InetSocketTransportAddress> result = AddressParserUtil.parseHostCsvList(null);
+        List<TransportAddress> result = AddressParserUtil.parseHostCsvList(null);
         Assert.assertEquals(0, result.size());
     }
 
     @Test
     public void testParserHostCsvListEmpty() {
-        List<InetSocketTransportAddress> result = AddressParserUtil.parseHostCsvList("");
+        List<TransportAddress> result = AddressParserUtil.parseHostCsvList("");
         Assert.assertEquals(0, result.size());
     }
 
     @Test
     public void testParserHostCsvListSingle() {
-        List<InetSocketTransportAddress> result = AddressParserUtil.parseHostCsvList("192.168.0.1:9200");
+        List<TransportAddress> result = AddressParserUtil.parseHostCsvList("192.168.0.1:9200");
         Assert.assertEquals(1, result.size());
         Assert.assertEquals("192.168.0.1", result.get(0).address().getHostString());
         Assert.assertEquals(9200, result.get(0).address().getPort());
@@ -32,7 +32,7 @@ public class AddressParserUtilTest {
 
     @Test
     public void testParserHostCsvListSingle2() {
-        List<InetSocketTransportAddress> result = AddressParserUtil.parseHostCsvList("192.168.0.1:9200,");
+        List<TransportAddress> result = AddressParserUtil.parseHostCsvList("192.168.0.1:9200,");
         Assert.assertEquals(1, result.size());
         Assert.assertEquals("192.168.0.1", result.get(0).address().getHostString());
         Assert.assertEquals(9200, result.get(0).address().getPort());
@@ -40,7 +40,7 @@ public class AddressParserUtilTest {
 
     @Test
     public void testParserHostCsvListDual() {
-        List<InetSocketTransportAddress> result = AddressParserUtil.parseHostCsvList("192.168.0.1:9200,localhost:8888");
+        List<TransportAddress> result = AddressParserUtil.parseHostCsvList("192.168.0.1:9200,localhost:8888");
         Assert.assertEquals(2, result.size());
         Assert.assertEquals("192.168.0.1", result.get(0).address().getHostString());
         Assert.assertEquals(9200, result.get(0).address().getPort());
@@ -50,7 +50,7 @@ public class AddressParserUtilTest {
 
     @Test
     public void testParserHostCsvListTrim() {
-        List<InetSocketTransportAddress> result = AddressParserUtil.parseHostCsvList(" 192.168.0.1:9200, localhost:8888  ");
+        List<TransportAddress> result = AddressParserUtil.parseHostCsvList(" 192.168.0.1:9200, localhost:8888  ");
         Assert.assertEquals(2, result.size());
         Assert.assertEquals("192.168.0.1", result.get(0).address().getHostString());
         Assert.assertEquals(9200, result.get(0).address().getPort());
@@ -60,7 +60,7 @@ public class AddressParserUtilTest {
 
     @Test
     public void testParserHostCsvListDual2() {
-        List<InetSocketTransportAddress> result = AddressParserUtil.parseHostCsvList("192.168.0.1:9200,localhost:8888,localhost:PORT");
+        List<TransportAddress> result = AddressParserUtil.parseHostCsvList("192.168.0.1:9200,localhost:8888,localhost:PORT");
         Assert.assertEquals(2, result.size());
         Assert.assertEquals("192.168.0.1", result.get(0).address().getHostString());
         Assert.assertEquals(9200, result.get(0).address().getPort());
@@ -70,7 +70,7 @@ public class AddressParserUtilTest {
 
     /**  Test => REMOVED! : host must be resolved and whitespace in host is not allowed in real world.
     public void testParserHostCsvListDual3() {
-        List<InetSocketInetSocketTransportAddress> result = AddressParserUtil.parseHostCsvList("192.168.0.1:9200,whitespace in host:1234,thehostname:8888");
+        List<TransportAddress> result = AddressParserUtil.parseHostCsvList("192.168.0.1:9200,whitespace in host:1234,thehostname:8888");
         Assert.assertEquals(2, result.size());
         Assert.assertEquals("192.168.0.1", result.get(0).address().getHostString());
         Assert.assertEquals(9200, result.get(0).address().getPort());
