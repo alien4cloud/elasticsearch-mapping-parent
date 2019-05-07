@@ -189,7 +189,8 @@ public class MappingBuilder {
         List<IFacetBuilderHelper> facetFields = new ArrayList<IFacetBuilderHelper>();
         Map<String, SourceFetchContext> fetchContexts = new HashMap<String, SourceFetchContext>();
 
-        typeDefinitionMap.put(typeNameStr, classDefinitionMap);
+        //typeDefinitionMap.put(typeNameStr, classDefinitionMap);
+        typeDefinitionMap.put("_doc", classDefinitionMap);
 
 /*********************
         if (esAll != null) {

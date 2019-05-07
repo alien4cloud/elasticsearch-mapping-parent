@@ -150,7 +150,8 @@ public class ElasticSearchInsertMappingTest {
 
             for (Class<?> clazz : classes) {
                 System.out.println(mappingBuilder.getMapping(clazz));
-                createIndexRequestBuilder.addMapping(clazz.getSimpleName().toLowerCase(), mappingBuilder.getMapping(clazz), XContentType.JSON);
+                createIndexRequestBuilder.addMapping("_doc", mappingBuilder.getMapping(clazz), XContentType.JSON);
+                //createIndexRequestBuilder.addMapping(clazz.getSimpleName().toLowerCase(), mappingBuilder.getMapping(clazz), XContentType.JSON);
             }
             final CreateIndexResponse createResponse = createIndexRequestBuilder.execute().actionGet();
             if (!createResponse.isAcknowledged()) {
@@ -165,11 +166,11 @@ public class ElasticSearchInsertMappingTest {
 		System.out.println (json);
         //esClient.getClient().prepareIndex(indexName, indexName).setOperationThreaded(false).setSource(json).setRefresh(true).execute().actionGet();
 		String idValue = (new FieldsMappingBuilder()).getIdValue(data);
-        esClient.getClient().prepareIndex(indexName, indexName, idValue).setSource(json, XContentType.JSON).setRefreshPolicy(RefreshPolicy.IMMEDIATE).execute().actionGet();
+        esClient.getClient().prepareIndex(indexName, "_doc", idValue).setSource(json, XContentType.JSON).setRefreshPolicy(RefreshPolicy.IMMEDIATE).execute().actionGet();
     }
 
     public Person readById(String indexName, String id) throws JsonParseException, JsonMappingException, IOException {
-        GetResponse response = esClient.getClient().prepareGet(indexName, indexName, id).execute().actionGet();
+        GetResponse response = esClient.getClient().prepareGet(indexName, "_doc", id).execute().actionGet();
 
         if (response == null || !response.isExists()) {
             return null;

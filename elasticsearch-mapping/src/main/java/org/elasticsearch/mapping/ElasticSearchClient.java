@@ -9,6 +9,7 @@ import javax.annotation.PreDestroy;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthAction;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequestBuilder;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
+import org.elasticsearch.analysis.common.CommonAnalysisPlugin;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.network.NetworkModule;
@@ -86,10 +87,12 @@ public class ElasticSearchClient {
          Settings settings = Settings.builder().put(Environment.PATH_HOME_SETTING.getKey(), "target/eshome")
                                                 .put("transport.type", MockTcpTransportPlugin.MOCK_TCP_TRANSPORT_NAME)
                                                 .put(NetworkModule.HTTP_ENABLED.getKey(), false)
+                                                .put("node.name", "alien")
                                                 .put("cluster.name", this.clusterName)
                                                 .build();
          ArrayList<Class<? extends Plugin>> plugins = new ArrayList<Class<? extends Plugin>>();
          plugins.add (MockTcpTransportPlugin.class);
+         plugins.add (CommonAnalysisPlugin.class);
          MockNode node = new MockNode(settings, plugins);
          node.start();
          this.client = node.client();

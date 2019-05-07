@@ -1,1 +1,1 @@
-{"city":{"properties":{"all":{"type":"text"},"city":{"copy_to":"all","index":"true","boost":1.0,"store":false,"type":"keyword","fields":{"lower_case":{"fielddata":"true","analyzer":"lowerCaseAnalyser","index":"true","boost":1.0,"store":false,"type":"text"}}}}}}
+{"_doc":{"properties":{"all":{"type":"text"},"city":{"copy_to":"all","index":"true","boost":1.0,"store":false,"type":"keyword","fields":{"lower_case":{"fielddata":"true","analyzer":"lowerCaseAnalyser","index":"true","boost":1.0,"store":false,"type":"text"}}}}}}

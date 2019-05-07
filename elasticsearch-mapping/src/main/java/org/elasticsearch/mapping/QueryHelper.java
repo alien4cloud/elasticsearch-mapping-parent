@@ -314,9 +314,9 @@ public class QueryHelper {
         @Override
         public SearchResponse count(String[] indices, String... types) {
             SearchRequestBuilder countRequestBuilder = esClient.getClient().prepareSearch(indices);
-            if (types != null && types.length > 0) {
+            /**if (types != null && types.length > 0) {
                 countRequestBuilder.setTypes(types);
-            } 
+            }**/
             countRequestBuilder.setSize(0).setQuery(this.queryBuilder);
             return countRequestBuilder.execute().actionGet();
         }
@@ -465,7 +465,7 @@ public class QueryHelper {
 
         @Override
         public SearchResponse execute(int from, int size) {
-            searchRequestBuilder.setTypes(getTypes());
+            //searchRequestBuilder.setTypes(getTypes());
             if (prefixField == null) {
                 if (!fieldSort) {
                     searchRequestBuilder.addSort(SortBuilders.scoreSort());
