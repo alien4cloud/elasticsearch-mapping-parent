@@ -203,7 +203,7 @@ public class MappingBuilder {
         //classDefinitionMap.put("_type", MapUtil.getMap(new String[] { "store", "index" }, new Object[] { esObject.store(), esObject.index() }));
 ****************************/
 
-        this.fieldsMappingBuilder.parseFieldMappings(clazz, classDefinitionMap, facetFields, filteredFields, fetchContexts, pathPrefix, null, true);
+        this.fieldsMappingBuilder.parseFieldMappings(clazz, classDefinitionMap, facetFields, filteredFields, fetchContexts, pathPrefix, null, esAll == null ? "" : esAll.analyser());
 
         ObjectMapper mapper = new ObjectMapper();
         if (typeNameStr != null) {

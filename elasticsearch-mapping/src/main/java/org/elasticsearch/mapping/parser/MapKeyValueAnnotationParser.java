@@ -101,7 +101,7 @@ public class MapKeyValueAnnotationParser implements IPropertyAnnotationParser<Ma
             Map<String, SourceFetchContext> fetchContext = Maps.newHashMap();
             try {
                 this.fieldsMappingBuilder.parseFieldMappings(mapValueType, valueFieldDefinition, facets, filters, fetchContext,
-                        indexable.getName() + ".value.", nestedPrefix, false);
+                        indexable.getName() + ".value.", nestedPrefix, null);
             } catch (IntrospectionException e) {
                 log.error("Fail to parse object class <" + mapValueType.getName() + ">", e);
             }
