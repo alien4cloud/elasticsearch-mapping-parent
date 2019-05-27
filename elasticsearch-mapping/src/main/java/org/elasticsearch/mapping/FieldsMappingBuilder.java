@@ -492,4 +492,19 @@ public class FieldsMappingBuilder {
 	return value;
     }
 
+    public String getTimeStamp (Class<?> clazz) throws IntrospectionException {
+       List<Indexable> indexables = getIndexables(clazz);
+       for (Indexable indexable : indexables) {
+            TimeStamp ts = indexable.getAnnotation(TimeStamp.class);
+            if (ts != null) {
+                return indexable.getName();
+            }
+        }
+
+        if (clazz.getSuperclass() != null && clazz.getSuperclass() != Object.class) {
+           return getTimeStamp(clazz.getSuperclass());
+        }
+
+        return null;
+    }
 }
