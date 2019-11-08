@@ -4,13 +4,13 @@
     <parent>
         <groupId>org.alien4cloud</groupId>
         <artifactId>elasticsearch-mapping-parent</artifactId>
-        <version>2.0.0-SNAPSHOT</version>
+        <version>6.6.2-SNAPSHOT</version>
     </parent>
 
     <artifactId>elasticsearch-mapping</artifactId>
     <name>Elastic search mapping.</name>
     <description>Object mapping for elastic search.</description>
-    
+
     <dependencies>
         <dependency>
             <groupId>org.elasticsearch</groupId>
