@@ -1,7 +1,10 @@
 package org.elasticsearch.mapping;
 
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Scanner;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
@@ -12,6 +15,8 @@ import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.analysis.common.CommonAnalysisPlugin;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.transport.TransportClient;
+import org.elasticsearch.common.io.stream.InputStreamStreamInput;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.network.NetworkModule;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
@@ -21,15 +26,18 @@ import org.elasticsearch.node.MockNode;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.transport.MockTcpTransportPlugin;
+import org.elasticsearch.transport.Netty4Plugin;
 import org.elasticsearch.transport.client.PreBuiltTransportClient;
 import org.elasticsearch.util.AddressParserUtil;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 
 import com.floragunn.searchguard.ssl.SearchGuardSSLPlugin;
 import com.floragunn.searchguard.ssl.util.SSLConfigConstants;
 
 import lombok.extern.slf4j.Slf4j;
+import org.yaml.snakeyaml.Yaml;
 
 /**
  * Prepare the node to work with elastic search.
@@ -59,48 +67,69 @@ public class ElasticSearchClient {
         if (this.isClient && this.isTransportClient) {
             // when these both option are set, we use a transport client
             Settings.Builder settingsBuilder = Settings.builder()
-                .put("cluster.name", this.clusterName);
+                    .put("cluster.name", this.clusterName);
             if (transportSSL) {
-               settingsBuilder = settingsBuilder
-                       .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_FILEPATH, this.keystore)
-                       .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, this.truststore)
-                       .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_PASSWORD, this.keystorePassword)
-                       .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_TRUSTSTORE_PASSWORD, this.truststorePassword);
+                settingsBuilder = settingsBuilder
+                        .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_FILEPATH, this.keystore)
+                        .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_TRUSTSTORE_FILEPATH, this.truststore)
+                        .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_KEYSTORE_PASSWORD, this.keystorePassword)
+                        .put(SSLConfigConstants.SEARCHGUARD_SSL_TRANSPORT_TRUSTSTORE_PASSWORD, this.truststorePassword);
             }
             Settings settings = settingsBuilder.build();
             TransportClient transportClient;
             if (!transportSSL) {
-               transportClient =  new PreBuiltTransportClient(settings);
+                transportClient = new PreBuiltTransportClient(settings);
             } else {
-               transportClient =  new PreBuiltTransportClient(settings, SearchGuardSSLPlugin.class);
+                transportClient = new PreBuiltTransportClient(settings, SearchGuardSSLPlugin.class);
             }
             for (TransportAddress add : adresses) {
                 transportClient.addTransportAddress(add);
             }
             this.client = transportClient;
-        }  else {
+        } else {
+            log.warn("=====================================================================================================================");
+            log.warn("This embedded mode is not suitable for production, if your not in dev stage, you should start a separate JVM for ES !");
+            log.warn("=====================================================================================================================");
             // when only 'client' option is set, a node without data is initialized and joins the cluster
 /************************
-            this.node = NodeBuilder.nodeBuilder().client(this.isClient).clusterName(this.clusterName).local(this.isLocal).node();
+ this.node = NodeBuilder.nodeBuilder().client(this.isClient).clusterName(this.clusterName).local(this.isLocal).node();
+ this.client = node.client();
+ ***************************/
+
+
+            Settings settings = null;
+            ClassPathResource config = new ClassPathResource("elasticsearch.yml");
+            if (config.exists()) {
+                log.info("Found elasticsearch.yml in classpath, using it to configure embedded ES :");
+                Scanner sc = new Scanner(config.getFile());
+                while (sc.hasNextLine()) {
+                    log.info(sc.nextLine());
+                }
+                InputStream is = config.getInputStream();
+                settings = Settings.builder().loadFromStream("elasticsearch.yml", is, true).build();
+            } else {
+                log.info("No elasticsearch.yml found in classpath, using default config !");
+                settings = Settings.builder().put(Environment.PATH_HOME_SETTING.getKey(), "target/eshome")
+                        .put("transport.type", MockTcpTransportPlugin.MOCK_TCP_TRANSPORT_NAME)
+                        .put(NetworkModule.HTTP_ENABLED.getKey(), true)
+                        .put("node.name", "alien")
+                        .put("cluster.name", this.clusterName)
+                        .put("network.host", "0.0.0.0")
+                        .build();
+            }
+
+            ArrayList<Class<? extends Plugin>> plugins = new ArrayList<Class<? extends Plugin>>();
+            plugins.add(Netty4Plugin.class);
+            plugins.add(MockTcpTransportPlugin.class);
+            plugins.add(CommonAnalysisPlugin.class);
+            MockNode node = new MockNode(settings, plugins);
+            node.start();
             this.client = node.client();
-***************************/
-         Settings settings = Settings.builder().put(Environment.PATH_HOME_SETTING.getKey(), "target/eshome")
-                                                .put("transport.type", MockTcpTransportPlugin.MOCK_TCP_TRANSPORT_NAME)
-                                                .put(NetworkModule.HTTP_ENABLED.getKey(), false)
-                                                .put("node.name", "alien")
-                                                .put("cluster.name", this.clusterName)
-                                                .build();
-         ArrayList<Class<? extends Plugin>> plugins = new ArrayList<Class<? extends Plugin>>();
-         plugins.add (MockTcpTransportPlugin.class);
-         plugins.add (CommonAnalysisPlugin.class);
-         MockNode node = new MockNode(settings, plugins);
-         node.start();
-         this.client = node.client();
-         this.node = node;
-        } 
+            this.node = node;
+        }
 
 //        if (this.resetData) { // removes all indices from elastic search. For Integration testing only.
-            // this.node.client().admin().indices().prepareDelete().execute().actionGet();
+        // this.node.client().admin().indices().prepareDelete().execute().actionGet();
 //        }
         log.info("Initialized ElasticSearch client for cluster <" + this.clusterName + ">");
     }
@@ -201,7 +230,8 @@ public class ElasticSearchClient {
         this.keystorePassword = password;
     }
 
-    @Value("#{elasticsearchConfig['searchguard.ssl.transport.truststore_password']}")
+    @Value("#{elasticsearchConfig['enforce_hostname_verification" +
+            "']}")
     public void setTruststorePassword(final String password) {
         this.truststorePassword = password;
     }
