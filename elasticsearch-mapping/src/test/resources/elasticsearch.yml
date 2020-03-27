@@ -32,90 +32,6 @@
 # cluster.name: elasticsearch
 
 
-#################################### Node #####################################
-
-# Node names are generated dynamically on startup, so you're relieved
-# from configuring them manually. You can tie this node to a specific name:
-#
-# node.name: "Franz Kafka"
-
-# Every node can be configured to allow or deny being eligible as the master,
-# and to allow or deny to store the data.
-#
-# Allow this node to be eligible as a master node (enabled by default):
-#
-# node.master: true
-#
-# Allow this node to store data (enabled by default):
-#
-# node.data: true
-
-# You can exploit these settings to design advanced cluster topologies.
-#
-# 1. You want this node to never become a master node, only to hold data.
-#    This will be the "workhorse" of your cluster.
-#
-# node.master: false
-# node.data: true
-#
-# 2. You want this node to only serve as a master: to not store any data and
-#    to have free resources. This will be the "coordinator" of your cluster.
-#
-# node.master: true
-# node.data: false
-#
-# 3. You want this node to be neither master nor data node, but
-#    to act as a "search load balancer" (fetching data from nodes,
-#    aggregating results, etc.)
-#
-# node.master: false
-# node.data: false
-
-# Use the Cluster Health API [http://localhost:9200/_cluster/health], the
-# Node Info API [http://localhost:9200/_nodes] or GUI tools
-# such as <http://www.elasticsearch.org/overview/marvel/>,
-# <http://github.com/karmi/elasticsearch-paramedic>,
-# <http://github.com/lukas-vlcek/bigdesk> and
-# <http://mobz.github.com/elasticsearch-head> to inspect the cluster state.
-
-# A node can have generic attributes associated with it, which can later be used
-# for customized shard allocation filtering, or allocation awareness. An attribute
-# is a simple key value pair, similar to node.key: value, here is an example:
-#
-# node.rack: rack314
-
-# By default, multiple nodes are allowed to start from the same installation location
-# to disable it, set the following:
-# node.max_local_storage_nodes: 1
-
-
-#################################### Index ####################################
-
-# You can set a number of options (such as shard/replica options, mapping
-# or analyzer definitions, translog settings, ...) for indices globally,
-# in this file.
-#
-# Note, that it makes more sense to configure index settings specifically for
-# a certain index, either when creating it or by using the index templates API.
-#
-# See <http://elasticsearch.org/guide/en/elasticsearch/reference/current/index-modules.html> and
-# <http://elasticsearch.org/guide/en/elasticsearch/reference/current/indices-create-index.html>
-# for more information.
-
-# Set the number of shards (splits) of an index (5 by default):
-#
-# index.number_of_shards: 5
-
-# Set the number of replicas (additional copies) of an index (1 by default):
-#
-# index.number_of_replicas: 1
-
-# Note, that for development on a local machine, with small indices, it usually
-# makes sense to "disable" the distributed features:
-#
-index.number_of_shards: 1
-index.number_of_replicas: 0
-
 # These settings directly affect the performance of index and search operations
 # in your cluster. Assuming you have enough machines to hold shards and
 # replicas, the rule of thumb is:
@@ -140,32 +56,8 @@ index.number_of_replicas: 0
 
 #################################### Paths ####################################
 
-# Path to directory containing configuration (this file and logging.yml):
-#
-path.conf: /src/test/resources
 
-# Path to directory where to store index data allocated for this node.
-#
-path.data: target/esdata
-#
-# Can optionally include more than one location, causing data to be striped across
-# the locations (a la RAID 0) on a file level, favouring locations with most free
-# space on creation. For example:
-#
-# path.data: /path/to/data1,/path/to/data2
-
-# Path to temporary files:
-#
-path.work: target/eswork
-
-# Path to log files:
-#
-path.logs: target/eslogs
-
-# Path to where plugins are installed:
-#
-# path.plugins: /path/to/plugins
-
+path.home: target/eshome
 
 #################################### Plugin ###################################
 
