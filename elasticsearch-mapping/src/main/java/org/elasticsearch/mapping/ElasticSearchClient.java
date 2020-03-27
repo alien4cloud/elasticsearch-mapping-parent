@@ -230,8 +230,7 @@ public class ElasticSearchClient {
         this.keystorePassword = password;
     }
 
-    @Value("#{elasticsearchConfig['enforce_hostname_verification" +
-            "']}")
+    @Value("#{elasticsearchConfig['searchguard.ssl.transport.truststore_password']}")
     public void setTruststorePassword(final String password) {
         this.truststorePassword = password;
     }
