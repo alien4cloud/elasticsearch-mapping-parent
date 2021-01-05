@@ -4,14 +4,22 @@
     <parent>
         <groupId>org.alien4cloud</groupId>
         <artifactId>elasticsearch-mapping-parent</artifactId>
-        <version>6.6.2-2-SNAPSHOT</version>
+        <version>6.8.13-1-SNAPSHOT</version>
     </parent>
 
     <artifactId>elasticsearch-mapping</artifactId>
     <name>Elastic search mapping.</name>
     <description>Object mapping for elastic search.</description>
 
+    <properties>
+       <elasticsearch.analysis-common.version>6.8.12</elasticsearch.analysis-common.version>
+    </properties>
+
     <dependencies>
+      <dependency>
+        <groupId>javax.annotation</groupId>
+        <artifactId>javax.annotation-api</artifactId>
+      </dependency>
         <dependency>
             <groupId>org.elasticsearch</groupId>
             <artifactId>elasticsearch</artifactId>
@@ -24,11 +32,11 @@
                 <groupId>org.elasticsearch.plugin</groupId>
                 <artifactId>transport-netty4-client</artifactId>
             </dependency>
-<dependency>
-    <groupId>org.codelibs.elasticsearch.module</groupId>
-    <artifactId>analysis-common</artifactId>
-    <version>${elasticsearch.version}</version>
-</dependency>
+            <dependency>
+                <groupId>org.codelibs.elasticsearch.module</groupId>
+                <artifactId>analysis-common</artifactId>
+                <version>${elasticsearch.analysis-common.version}</version>
+        </dependency>
         <dependency>
             <groupId>com.floragunn</groupId>
             <artifactId>search-guard-ssl</artifactId>
