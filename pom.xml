@@ -10,7 +10,7 @@
     <description>An object mapping framework for Elastic Search.</description>
 
     <properties>
-        <elasticsearch.version>1.7.0</elasticsearch.version>
+        <elasticsearch.version>6.8.15</elasticsearch.version>
         <jackson.version>2.8.1</jackson.version>
         <spring.version>4.3.2.RELEASE</spring.version>
         <junit.version>4.12</junit.version>
