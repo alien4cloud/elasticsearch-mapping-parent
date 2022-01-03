@@ -3,14 +3,14 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.alien4cloud</groupId>
     <artifactId>elasticsearch-mapping-parent</artifactId>
-    <version>6.8.13-1-SNAPSHOT</version>
+    <version>6.8.22-1-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>Elastic search mapping parent</name>
     <description>An object mapping framework for Elastic Search.</description>
 
     <properties>
-        <elasticsearch.version>6.8.13</elasticsearch.version>
+        <elasticsearch.version>6.8.22</elasticsearch.version>
         <search-guard.version>6.8.6-25.7</search-guard.version>
 
         <jackson.version>2.9.3</jackson.version>
@@ -21,6 +21,7 @@
         <guava.version>19.0</guava.version>
         <lombok.version>1.18.16</lombok.version>
         <!-- Logging -->
+        <log4j.version>2.17.0</log4j.version>
         <slf4j.version>1.7.24</slf4j.version>
 
         <java.version>15</java.version>
